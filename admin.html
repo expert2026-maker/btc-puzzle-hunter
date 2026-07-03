@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · BTC Kangaroo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500;700&display=swap');
+ 
+:root {
+  --bg: #06060f;
+  --surface: #0e0e1c;
+  --card: #131326;
+  --border: #1f1f38;
+  --accent: #f7931a;
+  --teal: #00d4aa;
+  --purple: #7c3aed;
+  --red: #ff4466;
+  --green: #22c55e;
+  --text: #e2e2f0;
+  --muted: #5a5a7a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; min-height: 100vh; }
+ 
+/* ── LOGIN ── */
+#loginScreen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 20px;
+}
+.login-box {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 40px; max-width: 360px; width: 100%;
+  text-align: center;
+}
+.login-icon { font-size: 48px; margin-bottom: 16px; }
+.login-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+.login-input {
+  width: 100%; padding: 12px 14px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 15px; font-family: 'Share Tech Mono', monospace;
+  outline: none; margin-bottom: 12px; letter-spacing: 2px;
+}
+.login-input:focus { border-color: var(--accent); }
+.login-btn {
+  width: 100%; padding: 13px; background: var(--accent); color: #000;
+  border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+  cursor: pointer;
+}
+ 
+/* ── LAYOUT ── */
+#adminScreen { display: none; }
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 200px;
+  background: var(--surface); border-right: 1px solid var(--border);
+  padding: 20px 0; display: flex; flex-direction: column;
+}
+.sidebar-logo { padding: 0 18px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.sidebar-logo-title { font-size: 14px; font-weight: 700; }
+.sidebar-logo-sub { font-size: 10px; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px; font-size: 13px; color: var(--muted);
+  cursor: pointer; border-radius: 0; transition: all 0.15s;
+  border-left: 3px solid transparent;
+}
+.nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.nav-item.active { color: var(--text); border-left-color: var(--accent); background: rgba(247,147,26,0.06); }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.main { margin-left: 200px; padding: 28px; min-height: 100vh; }
+ 
+/* ── HEADER ── */
+.page-header { margin-bottom: 24px; }
+.page-title { font-size: 22px; font-weight: 700; }
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+ 
+/* ── STAT CARDS ── */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px;
+}
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.stat-val { font-family: 'Share Tech Mono', monospace; font-size: 26px; font-weight: 600; }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.stat-card.orange { border-color: rgba(247,147,26,0.3); }
+.stat-card.orange .stat-val { color: var(--accent); }
+.stat-card.teal { border-color: rgba(0,212,170,0.3); }
+.stat-card.teal .stat-val { color: var(--teal); }
+.stat-card.purple { border-color: rgba(124,58,237,0.3); }
+.stat-card.purple .stat-val { color: var(--purple); }
+.stat-card.red { border-color: rgba(255,68,102,0.3); }
+.stat-card.red .stat-val { color: var(--red); }
+ 
+/* ── PANELS ── */
+.panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.panel-full { grid-column: 1 / -1; }
+.panel-title { font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+.panel-title-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
+ 
+/* ── FORM ELEMENTS ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; display: block; }
+.form-input {
+  width: 100%; padding: 10px 12px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 13px; font-family: 'Share Tech Mono', monospace;
+  outline: none;
+}
+.form-input:focus { border-color: var(--accent); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn { padding: 10px 18px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: all 0.15s; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-danger { background: rgba(255,68,102,0.15); color: var(--red); border: 1px solid rgba(255,68,102,0.3); }
+.btn-teal { background: rgba(0,212,170,0.15); color: var(--teal); border: 1px solid rgba(0,212,170,0.3); }
+.btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+ 
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { padding: 10px 12px; text-align: left; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1px solid var(--border); font-weight: 500; }
+tbody td { padding: 10px 12px; border-bottom: 1px solid rgba(31,31,56,0.6); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+.mono { font-family: 'Share Tech Mono', monospace; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+.badge-free { background: rgba(90,90,122,0.2); color: var(--muted); }
+.badge-basic { background: rgba(247,147,26,0.15); color: var(--accent); }
+.badge-pro { background: rgba(124,58,237,0.15); color: var(--purple); }
+.badge-online { background: rgba(34,197,94,0.15); color: var(--green); }
+.badge-offline { background: rgba(90,90,122,0.15); color: var(--muted); }
+ 
+/* ── FOUND KEY ── */
+.found-banner {
+  background: linear-gradient(135deg, rgba(247,147,26,0.15), rgba(0,212,170,0.1));
+  border: 2px solid var(--accent);
+  border-radius: 16px; padding: 24px; margin-bottom: 20px;
+  animation: glow 1.5s ease infinite alternate;
+  display: none;
+}
+.found-banner.show { display: block; }
+@keyframes glow { from { box-shadow: 0 0 10px rgba(247,147,26,0.2); } to { box-shadow: 0 0 40px rgba(247,147,26,0.5); } }
+.found-title { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+.found-key-box { background: var(--bg); border-radius: 8px; padding: 12px; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--teal); word-break: break-all; margin-bottom: 14px; }
+.found-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+ 
+/* ── REWARD TABLE ── */
+.reward-info {
+  background: var(--surface); border-radius: 10px; padding: 14px; margin-bottom: 14px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+}
+.rw-cell { text-align: center; }
+.rw-val { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 600; }
+.rw-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+ 
+/* ── ALERT ── */
+.alert { padding: 12px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; }
+.alert-warn { background: rgba(247,147,26,0.1); border: 1px solid rgba(247,147,26,0.3); color: var(--accent); }
+.alert-ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
+.alert-info { background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.2); color: var(--teal); }
+ 
+/* ── NAV PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+ 
+/* ── MISC ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.text-muted { color: var(--muted); }
+.text-sm { font-size: 12px; }
+.text-accent { color: var(--accent); }
+.flex-gap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.wallet-display { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--teal); word-break: break-all; }
+.refresh-btn { font-size: 11px; color: var(--muted); cursor: pointer; }
+.refresh-btn:hover { color: var(--text); }
+</style>
+</head>
+<body>
+ 
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">Admin Panel</div>
+    <div class="login-sub">BTC Kangaroo Platform</div>
+    <input class="login-input" id="loginPass" type="password" placeholder="Пароль" onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" onclick="login()">Войти</button>
+  </div>
+</div>
+ 
+<!-- ADMIN -->
+<div id="adminScreen">
+ 
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-title">🦘 Kangaroo</div>
+      <div class="sidebar-logo-sub">Admin · v1.0</div>
+    </div>
+    <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('users')"><span class="nav-icon">👥</span> Пользователи</div>
+    <div class="nav-item" onclick="showPage('puzzle')"><span class="nav-icon">⚙️</span> Настройки пазла</div>
+    <div class="nav-item" onclick="showPage('found')"><span class="nav-icon">🎉</span> Найденный ключ</div>
+    <div class="nav-item" onclick="showPage('wallet')"><span class="nav-icon">💰</span> Мой кошелёк</div>
+    <div style="flex:1"></div>
+    <div class="nav-item text-muted" onclick="logout()" style="font-size:12px"><span class="nav-icon">🚪</span> Выйти</div>
+  </div>
+ 
+  <div class="main">
+ 
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Обновлено: <span id="lastUpdate">—</span> <span class="refresh-btn" onclick="loadDashboard()">↻ Обновить</span></div>
+      </div>
+ 
+      <div class="stat-grid">
+        <div class="stat-card orange">
+          <div class="stat-label">Пользователей</div>
+          <div class="stat-val" id="statUsers">—</div>
+          <div class="stat-sub">всего зарегистрировано</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Онлайн (5 мин)</div>
+          <div class="stat-val" id="statOnline">—</div>
+          <div class="stat-sub">активных сейчас</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">Прыжков (сеть)</div>
+          <div class="stat-val" id="statNetJumps">—</div>
+          <div class="stat-sub">всего выполнено</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Подписчиков</div>
+          <div class="stat-val" id="statPaid">—</div>
+          <div class="stat-sub">basic + pro</div>
+        </div>
+      </div>
+ 
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-title">Активный пазл <span class="panel-title-sub" id="activePuzzleLabel">—</span></div>
+          <div class="form-group">
+            <div class="form-label">Публичный ключ X</div>
+            <div class="mono text-sm" id="dashPubX" style="color:var(--teal);word-break:break-all;font-size:11px">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Диапазон</div>
+            <div class="mono text-sm" id="dashRange" style="color:var(--muted)">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">DP точек найдено</div>
+            <div class="stat-val" id="dashDPCount" style="font-size:18px">—</div>
+          </div>
+        </div>
+ 
+        <div class="panel">
+          <div class="panel-title">Тарифы</div>
+          <table>
+            <thead><tr><th>Тариф</th><th>Кол-во</th><th>Доля</th></tr></thead>
+            <tbody id="planStats">
+              <tr><td colspan="3" class="text-muted">Загрузка...</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:14px">
+            <div class="form-label">Скорость сети</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:22px;color:var(--accent)" id="netSpeed">— пр/с</div>
+          </div>
+        </div>
+ 
+        <div class="panel panel-full">
+          <div class="panel-title">Топ-10 участников по прыжкам <span class="panel-title-sub">→ полный список в "Пользователи"</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>ID / Username</th><th>Прыжков</th><th>Скорость</th><th>Тариф</th><th>Последний визит</th><th>Кошелёк</th>
+                </tr>
+              </thead>
+              <tbody id="top10Body">
+                <tr><td colspan="7" class="text-muted">Загрузка...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ── USERS ── -->
+    <div class="page" id="page-users">
+      <div class="page-header">
+        <div class="page-title">Пользователи</div>
+        <div class="flex-gap">
+          <input class="form-input" id="searchUser" placeholder="Поиск по ID или username..." style="width:240px" oninput="filterUsers()">
+          <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↻ Обновить</button>
+          <select class="form-input" id="filterPlan" style="width:140px" onchange="filterUsers()">
+            <option value="">Все тарифы</option>
+            <option value="free">Бесплатный</option>
+            <option value="basic">Basic</option>
+            <option value="pro">Pro</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>TG ID</th><th>Имя</th><th>Username</th><th>Тариф</th><th>Прыжков</th>
+                <th>Статус</th><th>Кошелёк BTC</th><th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody">
+              <tr><td colspan="8" class="text-muted">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="usersPagination" style="margin-top:12px;font-size:12px;color:var(--muted)"></div>
+      </div>
+    </div>
+ 
+    <!-- ── PUZZLE CONFIG ── -->
+    <div class="page" id="page-puzzle">
+      <div class="page-header">
+        <div class="page-title">Настройки пазла</div>
+        <div class="page-sub">Изменение вступит в силу немедленно для всех пользователей</div>
+      </div>
+ 
+      <div class="alert alert-warn">
+        ⚠️ После смены ключа или диапазона все накопленные Distinguished Points сбрасываются.
+        Пользователи получат уведомление через бота.
+      </div>
+ 
+      <div class="panel-grid">
+        <div class="panel panel-full">
+          <div class="panel-title">Параметры поиска</div>
+ 
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Номер пазла</label>
+              <input class="form-input" id="cfgNumber" type="number" min="1" max="256" placeholder="66">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Бит ключа (n) → диапазон [2ⁿ⁻¹, 2ⁿ)</label>
+              <input class="form-input" id="cfgBits" type="number" min="1" max="256" placeholder="66" oninput="autoRange()">
+            </div>
+          </div>
+ 
+          <div class="form-group">
+            <label class="form-label">Публичный ключ — X (hex, 64 символа)</label>
+            <input class="form-input" id="cfgPubX" placeholder="09d2114c240a0571...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Публичный ключ — Y (hex, 64 символа)</label>
+            <input class="form-input" id="cfgPubY" placeholder="d20e0d91ef7af0e4...">
+          </div>
+ 
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Диапазон от (hex)</label>
+              <input class="form-input" id="cfgRangeLo" placeholder="20000000000000000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Диапазон до (hex)</label>
+              <input class="form-input" id="cfgRangeHi" placeholder="3ffffffffffffffff">
+            </div>
+          </div>
+ 
+          <div class="form-group">
+            <label class="form-label">Размер BTC кошелька (для отображения приза)</label>
+            <input class="form-input" id="cfgPrize" placeholder="6.6" type="number" step="0.001">
+          </div>
+ 
+          <div class="flex-gap">
+            <button class="btn btn-primary" onclick="savePuzzleConfig()">💾 Сохранить и применить</button>
+            <button class="btn btn-ghost" onclick="loadCurrentConfig()">↻ Сбросить</button>
+            <button class="btn btn-danger btn-sm" onclick="clearDPTable()">🗑 Очистить DP таблицу</button>
+          </div>
+        </div>
+ 
+        <div class="panel">
+          <div class="panel-title">Текущий пазл</div>
+          <div id="currentConfigDisplay" class="text-muted text-sm">Загрузка...</div>
+        </div>
+ 
+        <div class="panel">
+          <div class="panel-title">Быстрый выбор известных пазлов</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="loadPreset(66)">Puzzle #66 (текущий)</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadPreset(67)">Puzzle #67</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadPreset(68)">Puzzle #68</button>
+          </div>
+          <div class="alert alert-info" style="margin-top:14px;font-size:12px">
+            Публичный ключ для #67 и выше — введите вручную после появления в bitcoin.stackexchange.com
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ── FOUND KEY ── -->
+    <div class="page" id="page-found">
+      <div class="page-header">
+        <div class="page-title">Найденный ключ</div>
+        <div class="page-sub">Управление выплатами при нахождении ключа</div>
+      </div>
+ 
+      <div class="found-banner" id="foundBanner">
+        <div class="found-title">🎉 ПРИВАТНЫЙ КЛЮЧ НАЙДЕН!</div>
+        <div class="form-label">Приватный ключ (только для вас):</div>
+        <div class="found-key-box" id="foundKeyDisplay">—</div>
+        <div class="found-actions">
+          <button class="btn btn-primary" onclick="copyFoundKey()">📋 Скопировать ключ</button>
+          <button class="btn btn-teal" onclick="verifyKey()">✓ Проверить на blockchain</button>
+          <button class="btn btn-danger" onclick="markDistributed()">✅ Отметить как выплачено</button>
+        </div>
+      </div>
+ 
+      <div class="alert alert-info" id="noFoundAlert">
+        ℹ️ Ключ ещё не найден. Эта страница обновится автоматически при нахождении.
+      </div>
+ 
+      <div class="panel">
+        <div class="panel-title">Распределение наград <span class="panel-title-sub" id="distStatus">—</span></div>
+ 
+        <div class="reward-info">
+          <div class="rw-cell">
+            <div class="rw-val text-accent" id="rwPrize">6.6</div>
+            <div class="rw-label">Приз (BTC)</div>
+          </div>
+          <div class="rw-cell">
+            <div class="rw-val" style="color:var(--teal)" id="rwPool">5.28</div>
+            <div class="rw-label">Пул 80% (BTC)</div>
+          </div>
+          <div class="rw-cell">
+            <div class="rw-val" style="color:var(--purple)" id="rwMyShare">1.32</div>
+            <div class="rw-label">Моя комиссия 20%</div>
+          </div>
+        </div>
+ 
+        <div class="form-group">
+          <label class="form-label">Мой BTC адрес для получения 20%</label>
+          <div class="wallet-display" id="adminWalletDisplay">не задан</div>
+        </div>
+        <hr class="divider">
+        <div class="panel-title" style="margin-bottom:12px">Топ-1000 участников для выплаты</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>TG ID</th><th>Username</th><th>Прыжков</th><th>Доля %</th><th>BTC сумма</th><th>Кошелёк</th><th>Статус</th>
+              </tr>
+            </thead>
+            <tbody id="rewardBody">
+              <tr><td colspan="8" class="text-muted">Ключ ещё не найден</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:10px">
+          <button class="btn btn-teal" onclick="exportRewardCSV()">⬇ Экспорт CSV</button>
+          <button class="btn btn-ghost" onclick="loadRewardData()">↻ Обновить список</button>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ── MY WALLET ── -->
+    <div class="page" id="page-wallet">
+      <div class="page-header">
+        <div class="page-title">Мой кошелёк</div>
+        <div class="page-sub">Адрес для получения комиссии платформы (20% от приза)</div>
+      </div>
+ 
+      <div class="panel" style="max-width:540px">
+        <div class="form-group">
+          <label class="form-label">BTC адрес (Legacy, SegWit или Bech32)</label>
+          <input class="form-input" id="adminWalletInput" placeholder="bc1q... или 1ABC... или 3ABC...">
+        </div>
+        <div class="alert alert-warn" style="margin-bottom:14px">
+          ⚠️ Проверьте адрес трижды. После нахождения ключа выплата идёт на этот адрес.
+          Ошибка в адресе = потеря средств.
+        </div>
+        <button class="btn btn-primary" onclick="saveAdminWallet()">💾 Сохранить кошелёк</button>
+ 
+        <hr class="divider">
+        <div class="form-label">Текущий сохранённый адрес</div>
+        <div class="wallet-display" id="savedAdminWallet" style="margin-top:6px">не задан</div>
+ 
+        <hr class="divider">
+        <div class="form-label" style="margin-bottom:8px">Схема выплаты при нахождении</div>
+        <div class="text-sm text-muted" style="line-height:1.8">
+          1. Ключ поступает на эту страницу (зашифровано)<br>
+          2. Вы вручную берёте монеты с кошелька пазла<br>
+          3. 20% отправляете на адрес выше<br>
+          4. 80% делите между топ-1000 по таблице в "Найденный ключ"<br>
+          5. Нажимаете "Отметить как выплачено"
+        </div>
+      </div>
+    </div>
+ 
+  </div><!-- /main -->
+</div><!-- /adminScreen -->
+ 
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_KEY = '__SUPABASE_SERVICE_KEY__'; // service_role для admin
+const ADMIN_PASSWORD = 'admin12345'; // замените!
+ 
+// ============================================================
+// Auth
+// ============================================================
+function login(){
+  const pass = document.getElementById('loginPass').value;
+  if(pass === ADMIN_PASSWORD){
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminScreen').style.display = 'block';
+    loadDashboard();
+    loadAdminWallet();
+    setInterval(loadDashboard, 30000);
+    setInterval(checkForFoundKey, 15000);
+  } else {
+    document.getElementById('loginPass').style.borderColor = '#ff4466';
+    setTimeout(()=>document.getElementById('loginPass').style.borderColor='', 1000);
+  }
+}
+document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter')login(); });
+ 
+function logout(){
+  document.getElementById('adminScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+ 
+// ============================================================
+// Supabase
+// ============================================================
+async function sb(table, method='GET', body=null, params=''){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
+    method,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: body ? JSON.stringify(body) : null
+  });
+  if(!res.ok) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+ 
+// ============================================================
+// Dashboard
+// ============================================================
+let allUsers = [];
+ 
+async function loadDashboard(){
+  document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('ru');
+  const users = await sb('users','GET',null,'?select=*&order=total_jumps.desc');
+  if(!users) return;
+  allUsers = users;
+ 
+  const fiveMinsAgo = new Date(Date.now() - 5*60*1000).toISOString();
+  const online = users.filter(u => u.last_seen && u.last_seen > fiveMinsAgo);
+  const paid = users.filter(u => u.plan !== 'free');
+  const totalJumps = users.reduce((s,u)=>s+Number(u.total_jumps||0),0);
+ 
+  document.getElementById('statUsers').textContent = users.length;
+  document.getElementById('statOnline').textContent = online.length;
+  document.getElementById('statNetJumps').textContent = fmtNum(totalJumps);
+  document.getElementById('statPaid').textContent = paid.length;
+ 
+  // Plan breakdown
+  const byPlan = { free:0, basic:0, pro:0 };
+  users.forEach(u=>{ byPlan[u.plan||'free']++; });
+  const total = users.length || 1;
+  document.getElementById('planStats').innerHTML = `
+    <tr><td><span class="badge badge-free">Free</span></td><td>${byPlan.free}</td><td>${(byPlan.free/total*100).toFixed(1)}%</td></tr>
+    <tr><td><span class="badge badge-basic">Basic</span></td><td>${byPlan.basic}</td><td>${(byPlan.basic/total*100).toFixed(1)}%</td></tr>
+    <tr><td><span class="badge badge-pro">Pro</span></td><td>${byPlan.pro}</td><td>${(byPlan.pro/total*100).toFixed(1)}%</td></tr>
+  `;
+ 
+  // Network speed estimate
+  const speedEst = online.length * 200;
+  document.getElementById('netSpeed').textContent = fmtNum(speedEst) + ' пр/с';
+ 
+  // Top 10
+  const top10 = users.slice(0,10);
+  document.getElementById('top10Body').innerHTML = top10.map((u,i)=>{
+    const isOnline = u.last_seen && u.last_seen > fiveMinsAgo;
+    const wallet = u.wallet_address ? u.wallet_address.slice(0,12)+'...' : '<span class="text-muted">—</span>';
+    return `<tr>
+      <td class="mono">${i+1}</td>
+      <td class="mono">${u.id}</td>
+      <td>${u.username ? '@'+u.username : u.first_name||'—'}</td>
+      <td class="mono text-accent">${fmtNum(u.total_jumps||0)}</td>
+      <td class="text-muted">—</td>
+      <td><span class="badge ${isOnline?'badge-online':'badge-offline'}">${isOnline?'Online':'Offline'}</span></td>
+      <td><span class="badge badge-${u.plan||'free'}">${u.plan||'free'}</span></td>
+      <td><span class="wallet-display" style="font-size:10px">${wallet}</span></td>
+    </tr>`;
+  }).join('');
+ 
+  // Active puzzle
+  const cfg = await sb('puzzle_config','GET',null,'?is_active=eq.true&order=id.desc&limit=1');
+  if(cfg && cfg[0]){
+    const c = cfg[0];
+    document.getElementById('activePuzzleLabel').textContent = `#${c.puzzle_number}`;
+    document.getElementById('dashPubX').textContent = c.public_key_x;
+    document.getElementById('dashRange').textContent = `[0x${c.range_lo.slice(0,8)}..., 0x${c.range_hi.slice(0,8)}...]`;
+    document.getElementById('currentConfigDisplay').innerHTML = `
+      <div style="margin-bottom:8px"><b>Puzzle #${c.puzzle_number}</b></div>
+      <div class="form-label">Pub X:</div>
+      <div class="mono" style="font-size:10px;word-break:break-all;color:var(--teal)">${c.public_key_x}</div>
+      <div class="form-label" style="margin-top:8px">Pub Y:</div>
+      <div class="mono" style="font-size:10px;word-break:break-all;color:var(--teal)">${c.public_key_y}</div>
+      <div class="form-label" style="margin-top:8px">Диапазон:</div>
+      <div class="mono" style="font-size:11px">Lo: 0x${c.range_lo}</div>
+      <div class="mono" style="font-size:11px">Hi: 0x${c.range_hi}</div>
+    `;
+  }
+ 
+  // DP count
+  const dpCount = await sb('distinguished_points','GET',null,'?select=id&limit=1&count=exact');
+  document.getElementById('dashDPCount').textContent = '—'; // Supabase count requires headers
+}
+ 
+// ============================================================
+// Users
+// ============================================================
+async function loadUsers(){
+  const users = await sb('users','GET',null,'?select=*&order=total_jumps.desc&limit=500');
+  if(users) { allUsers = users; renderUsers(users); }
+}
+ 
+function filterUsers(){
+  const q = document.getElementById('searchUser').value.toLowerCase();
+  const plan = document.getElementById('filterPlan').value;
+  const filtered = allUsers.filter(u=>{
+    const matchQ = !q || String(u.id).includes(q) || (u.username||'').toLowerCase().includes(q) || (u.first_name||'').toLowerCase().includes(q);
+    const matchP = !plan || u.plan === plan;
+    return matchQ && matchP;
+  });
+  renderUsers(filtered);
+}
+ 
+function renderUsers(users){
+  const fiveMinsAgo = new Date(Date.now()-5*60*1000).toISOString();
+  const totalJ = users.reduce((s,u)=>s+Number(u.total_jumps||0),0)||1;
+  document.getElementById('usersBody').innerHTML = users.map((u,i)=>{
+    const isOnline = u.last_seen && u.last_seen > fiveMinsAgo;
+    const share = (Number(u.total_jumps||0)/totalJ*80).toFixed(3);
+    const wallet = u.wallet_address ? `<span class="wallet-display" style="font-size:10px">${u.wallet_address.slice(0,14)}...</span>` : '<span class="text-muted">—</span>';
+    return `<tr>
+      <td class="mono">${u.id}</td>
+      <td>${u.first_name||'—'}</td>
+      <td>${u.username?'@'+u.username:'—'}</td>
+      <td><span class="badge badge-${u.plan||'free'}">${u.plan||'free'}</span></td>
+      <td class="mono text-accent">${fmtNum(u.total_jumps||0)}</td>
+      <td><span class="badge ${isOnline?'badge-online':'badge-offline'}">${isOnline?'🟢 Online':'⚫ Offline'}</span></td>
+      <td>${wallet}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="changePlan(${u.id},'${u.plan||'free'}')">Тариф</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="text-muted">Нет данных</td></tr>';
+  document.getElementById('usersPagination').textContent = `Показано ${users.length} пользователей`;
+}
+ 
+async function changePlan(userId, currentPlan){
+  const plans = ['free','basic','pro'];
+  const newPlan = prompt(`Тариф для ${userId}\nТекущий: ${currentPlan}\nВведите: free / basic / pro`, currentPlan);
+  if(!newPlan || !plans.includes(newPlan)) return;
+  const expires = newPlan !== 'free' ? new Date(Date.now()+30*24*3600*1000).toISOString() : null;
+  await sb('users','PATCH',{plan:newPlan,plan_expires_at:expires},`?id=eq.${userId}`);
+  alert(`Тариф изменён на ${newPlan}`);
+  loadUsers();
+}
+ 
+// ============================================================
+// Puzzle Config
+// ============================================================
+const PRESETS = {
+  66: {
+    number: 66, bits: 66,
+    pubX: '09d2114c240a0571c24e95736f9d58f6a99dde09e9dfa9c3cb49fdb3e0d4e37c',
+    pubY: 'd20e0d91ef7af0e4ab11e1b5c4d69775b11c5d8dc2b6c4ebf3cf4d76c4c1c09f',
+    lo: '20000000000000000', hi: '3ffffffffffffffff'
+  },
+  67: { number: 67, bits: 67, pubX: '', pubY: '', lo: '40000000000000000', hi: '7ffffffffffffffff' },
+  68: { number: 68, bits: 68, pubX: '', pubY: '', lo: '80000000000000000', hi: 'fffffffffffffffff' }
+};
+ 
+function loadPreset(n){
+  const p = PRESETS[n];
+  if(!p) return;
+  document.getElementById('cfgNumber').value = p.number;
+  document.getElementById('cfgBits').value = p.bits;
+  document.getElementById('cfgPubX').value = p.pubX;
+  document.getElementById('cfgPubY').value = p.pubY;
+  document.getElementById('cfgRangeLo').value = p.lo;
+  document.getElementById('cfgRangeHi').value = p.hi;
+}
+ 
+function autoRange(){
+  const bits = parseInt(document.getElementById('cfgBits').value);
+  if(!bits || bits < 1 || bits > 256) return;
+  const lo = (1n << BigInt(bits-1)).toString(16);
+  const hi = ((1n << BigInt(bits)) - 1n).toString(16);
+  document.getElementById('cfgRangeLo').value = lo;
+  document.getElementById('cfgRangeHi').value = hi;
+}
+ 
+async function loadCurrentConfig(){
+  const cfg = await sb('puzzle_config','GET',null,'?is_active=eq.true&order=id.desc&limit=1');
+  if(cfg && cfg[0]){
+    const c = cfg[0];
+    document.getElementById('cfgNumber').value = c.puzzle_number;
+    document.getElementById('cfgPubX').value = c.public_key_x;
+    document.getElementById('cfgPubY').value = c.public_key_y;
+    document.getElementById('cfgRangeLo').value = c.range_lo;
+    document.getElementById('cfgRangeHi').value = c.range_hi;
+  }
+}
+ 
+async function savePuzzleConfig(){
+  const pubX = document.getElementById('cfgPubX').value.trim().replace('0x','');
+  const pubY = document.getElementById('cfgPubY').value.trim().replace('0x','');
+  const lo = document.getElementById('cfgRangeLo').value.trim().replace('0x','');
+  const hi = document.getElementById('cfgRangeHi').value.trim().replace('0x','');
+  const num = parseInt(document.getElementById('cfgNumber').value);
+ 
+  if(!pubX || !pubY || !lo || !hi){ alert('Заполните все поля'); return; }
+  if(!confirm(`Применить новый пазл #${num}?\nВсе DP точки будут сброшены!`)) return;
+ 
+  // Деактивируем старые
+  await sb('puzzle_config','PATCH',{is_active:false},'?is_active=eq.true');
+  // Создаём новый
+  const res = await sb('puzzle_config','POST',{
+    puzzle_number: num,
+    public_key_x: pubX,
+    public_key_y: pubY,
+    range_lo: lo,
+    range_hi: hi,
+    is_active: true
+  });
+  if(res){ alert('✅ Конфиг обновлён!'); loadCurrentConfig(); }
+  else alert('❌ Ошибка сохранения');
+}
+ 
+async function clearDPTable(){
+  if(!confirm('Удалить все Distinguished Points? Это сбросит прогресс поиска!')) return;
+  const cfg = await sb('puzzle_config','GET',null,'?is_active=eq.true&order=id.desc&limit=1');
+  if(cfg && cfg[0]){
+    await sb('distinguished_points','DELETE',null,`?puzzle_id=eq.${cfg[0].id}`);
+    alert('DP таблица очищена');
+  }
+}
+ 
+// ============================================================
+// Found Key
+// ============================================================
+let foundKeyData = null;
+ 
+async function checkForFoundKey(){
+  const keys = await sb('found_keys','GET',null,'?distributed=eq.false&order=found_at.desc&limit=1');
+  if(keys && keys[0] && !keys[0].distributed){
+    foundKeyData = keys[0];
+    const hex = atob(keys[0].private_key_encrypted); // в продакшне — расшифровать RSA
+    document.getElementById('foundBanner').classList.add('show');
+    document.getElementById('foundKeyDisplay').textContent = '0x' + hex;
+    document.getElementById('noFoundAlert').style.display = 'none';
+    document.getElementById('distStatus').textContent = keys[0].distributed ? 'Выплачено ✓' : '⚡ Ожидает выплаты';
+    loadRewardData();
+  }
+}
+ 
+function copyFoundKey(){
+  navigator.clipboard?.writeText(document.getElementById('foundKeyDisplay').textContent);
+  alert('Ключ скопирован!');
+}
+ 
+function verifyKey(){
+  const key = document.getElementById('foundKeyDisplay').textContent.replace('0x','');
+  window.open(`https://learnmeabitcoin.com/tools/private-key/?private_key=${key}`, '_blank');
+}
+ 
+async function markDistributed(){
+  if(!foundKeyData) return;
+  if(!confirm('Отметить награду как выплаченную?')) return;
+  await sb('found_keys','PATCH',{distributed:true},`?id=eq.${foundKeyData.id}`);
+  alert('Отмечено как выплачено');
+  document.getElementById('distStatus').textContent = 'Выплачено ✓';
+}
+ 
+async function loadRewardData(){
+  const users = await sb('users','GET',null,'?select=id,username,first_name,total_jumps,wallet_address&order=total_jumps.desc&limit=1000');
+  if(!users) return;
+ 
+  const prize = 6.6;
+  const pool = prize * 0.8;
+  const totalJ = users.reduce((s,u)=>s+Number(u.total_jumps||0),0)||1;
+ 
+  document.getElementById('rwPrize').textContent = prize.toFixed(2);
+  document.getElementById('rwPool').textContent = pool.toFixed(3);
+  document.getElementById('rwMyShare').textContent = (prize*0.2).toFixed(3);
+ 
+  document.getElementById('rewardBody').innerHTML = users.map((u,i)=>{
+    const share = Number(u.total_jumps||0)/totalJ;
+    const btc = (pool * share).toFixed(6);
+    const wallet = u.wallet_address || '<span style="color:var(--red)">НЕ ЗАДАН</span>';
+    return `<tr>
+      <td class="mono">${i+1}</td>
+      <td class="mono">${u.id}</td>
+      <td>${u.username?'@'+u.username:u.first_name||'—'}</td>
+      <td class="mono text-accent">${fmtNum(u.total_jumps||0)}</td>
+      <td class="mono">${(share*80).toFixed(4)}%</td>
+      <td class="mono text-teal">${btc}</td>
+      <td style="font-size:11px">${wallet}</td>
+      <td><span class="badge badge-offline">Pending</span></td>
+    </tr>`;
+  }).join('');
+}
+ 
+function exportRewardCSV(){
+  const rows = [['Rank','TG_ID','Username','Jumps','Share%','BTC_Amount','Wallet']];
+  document.querySelectorAll('#rewardBody tr').forEach((tr,i)=>{
+    const cells = tr.querySelectorAll('td');
+    if(cells.length >= 7){
+      rows.push([i+1,cells[1].textContent,cells[2].textContent,cells[3].textContent,
+        cells[4].textContent,cells[5].textContent,cells[6].textContent]);
+    }
+  });
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = `reward_distribution_${Date.now()}.csv`;
+  a.click();
+}
+ 
+// ============================================================
+// Admin Wallet
+// ============================================================
+async function loadAdminWallet(){
+  const cfg = await sb('puzzle_config','GET',null,'?is_active=eq.true&order=id.desc&limit=1');
+  if(cfg && cfg[0] && cfg[0].admin_wallet){
+    document.getElementById('savedAdminWallet').textContent = cfg[0].admin_wallet;
+    document.getElementById('adminWalletDisplay').textContent = cfg[0].admin_wallet;
+    document.getElementById('adminWalletInput').value = cfg[0].admin_wallet;
+  }
+}
+ 
+async function saveAdminWallet(){
+  const wallet = document.getElementById('adminWalletInput').value.trim();
+  if(!wallet){ alert('Введите адрес'); return; }
+  if(!confirm(`Сохранить адрес:\n${wallet}\n\nПроверьте внимательно!`)) return;
+  await sb('puzzle_config','PATCH',{admin_wallet:wallet},'?is_active=eq.true');
+  document.getElementById('savedAdminWallet').textContent = wallet;
+  document.getElementById('adminWalletDisplay').textContent = wallet;
+  alert('✅ Кошелёк сохранён');
+}
+ 
+// ============================================================
+// Navigation
+// ============================================================
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+ 
+  if(id==='users') loadUsers();
+  if(id==='puzzle') loadCurrentConfig();
+  if(id==='found'){ checkForFoundKey(); loadRewardData(); }
+  if(id==='wallet') loadAdminWallet();
+}
+ 
+// ============================================================
+// Helpers
+// ============================================================
+function fmtNum(n){
+  n = Number(n);
+  if(n>=1e9) return (n/1e9).toFixed(1)+'B';
+  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(1)+'K';
+  return n.toString();
+}
+</script>
+</body>
+</html>

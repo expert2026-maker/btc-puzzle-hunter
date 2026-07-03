@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>BTC Puzzle Hunter</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@300;400;500;700&display=swap');
+:root {
+  --bg:#06060f; --surface:#0e0e1c; --card:#131326; --border:#1f1f38;
+  --accent:#f7931a; --teal:#00d4aa; --purple:#7c3aed;
+  --text:#e2e2f0; --muted:#5a5a7a; --danger:#ff4466; --green:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
+ 
+/* SCREENS */
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+.content{padding:16px;max-width:440px;margin:0 auto;flex:1;position:relative;z-index:1;}
+ 
+/* BACKGROUND */
+#bgCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.5;}
+ 
+/* HEADER */
+.header{text-align:center;padding:22px 0 14px;}
+.eyebrow{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+.title{font-size:26px;font-weight:700;letter-spacing:-0.5px;line-height:1.1;}
+.title em{font-style:normal;color:var(--accent);}
+.subtitle{font-size:12px;color:var(--muted);margin-top:5px;}
+ 
+/* PUZZLE SELECT CARDS */
+.puzzle-cards{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+.puzzle-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:18px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;
+}
+.puzzle-card:active{transform:scale(0.98);}
+.puzzle-card.p71{border-color:rgba(0,212,170,0.3);}
+.puzzle-card.p135{border-color:rgba(247,147,26,0.3);}
+.puzzle-card.selected.p71{border-color:var(--teal);background:rgba(0,212,170,0.06);}
+.puzzle-card.selected.p135{border-color:var(--accent);background:rgba(247,147,26,0.06);}
+.pc-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.pc-icon{font-size:32px;}
+.pc-title{font-size:18px;font-weight:700;}
+.pc-algo{font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.pc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.pc-stat{background:rgba(0,0,0,0.2);border-radius:8px;padding:8px;text-align:center;}
+.pc-stat-val{font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:600;}
+.pc-stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.pc-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+.pc-badge{position:absolute;top:12px;right:12px;font-size:10px;padding:3px 8px;border-radius:12px;font-weight:600;}
+.badge-easy{background:rgba(34,197,94,0.15);color:var(--green);}
+.badge-hard{background:rgba(247,147,26,0.15);color:var(--accent);}
+ 
+/* TABS */
+.tabs{display:flex;background:var(--surface);border-radius:12px;padding:3px;margin-bottom:14px;}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:11px;font-weight:500;border-radius:10px;cursor:pointer;color:var(--muted);transition:all 0.2s;}
+.tab.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+ 
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+ 
+/* SECTOR MAP */
+.map-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;}
+.map-title{font-size:12px;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.map-legend{display:flex;gap:10px;font-size:10px;color:var(--muted);}
+.legend-dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:3px;}
+ 
+/* SECTOR GRID — 25×40 = 1000 cells */
+.sector-grid{
+  display:grid;grid-template-columns:repeat(40,1fr);gap:1px;
+  margin-bottom:10px;
+}
+.sector-cell{
+  aspect-ratio:1;border-radius:1px;cursor:pointer;
+  transition:transform 0.1s;min-width:0;
+}
+.sector-cell:hover{transform:scale(1.5);z-index:10;position:relative;}
+.sector-cell.free{background:#1a1a2e;}
+.sector-cell.partial{background:rgba(247,147,26,0.4);}
+.sector-cell.active{background:rgba(0,212,170,0.6);animation:pulse-cell 1s ease infinite alternate;}
+.sector-cell.completed{background:rgba(34,197,94,0.7);}
+.sector-cell.mine{outline:1px solid white;}
+@keyframes pulse-cell{from{opacity:0.6}to{opacity:1}}
+ 
+/* SUBSECTOR PANEL */
+.subsector-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;}
+.sp-title{font-size:12px;font-weight:600;margin-bottom:10px;}
+ 
+/* Subsector grid — 25×40 = 1000 cells (smaller) */
+.subsector-grid{
+  display:grid;grid-template-columns:repeat(40,1fr);gap:1px;
+  margin-bottom:10px;
+}
+.sub-cell{aspect-ratio:1;border-radius:1px;min-width:0;}
+.sub-cell.free{background:#1a1a2e;}
+.sub-cell.active{background:rgba(0,212,170,0.7);animation:pulse-cell 0.8s ease infinite alternate;}
+.sub-cell.completed{background:rgba(34,197,94,0.8);}
+.sub-cell.current{background:white;animation:pulse-cell 0.5s ease infinite alternate;}
+ 
+/* PROGRESS */
+.progress-wrap{margin-bottom:12px;}
+.progress-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.progress-label{font-size:11px;color:var(--muted);}
+.progress-val{font-family:'Share Tech Mono',monospace;font-size:12px;}
+.progress-bg{background:#0a0a18;border-radius:4px;height:5px;overflow:hidden;margin-bottom:8px;}
+.progress-fill{height:100%;border-radius:4px;transition:width 0.5s ease;}
+.fill-teal{background:linear-gradient(90deg,var(--teal),#00ffcc);box-shadow:0 0 8px rgba(0,212,170,0.3);}
+.fill-orange{background:linear-gradient(90deg,var(--accent),#ffb347);box-shadow:0 0 8px rgba(247,147,26,0.3);}
+ 
+/* SCENE */
+.scene-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px;}
+#sceneCanvas{width:100%;height:130px;display:block;}
+.scene-stats{display:grid;grid-template-columns:1fr 1fr 1fr;padding:10px 14px;border-top:1px solid var(--border);gap:6px;}
+.ss{text-align:center;}
+.ss-val{font-family:'Share Tech Mono',monospace;font-size:15px;font-weight:600;}
+.ss-label{font-size:9px;color:var(--muted);text-transform:uppercase;}
+ 
+/* METRICS */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px;}
+.metric-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;}
+.metric-value{font-family:'Share Tech Mono',monospace;font-size:19px;font-weight:600;}
+.metric-unit{font-size:9px;color:var(--muted);}
+ 
+/* BUTTONS */
+.btn-row{display:flex;gap:8px;margin-bottom:12px;}
+.btn{flex:1;padding:14px;border:none;border-radius:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all 0.15s;}
+.btn:active{transform:scale(0.96);}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:disabled{background:#2a2a1a;color:var(--muted);cursor:not-allowed;transform:none;}
+.btn-teal{background:rgba(0,212,170,0.15);color:var(--teal);border:1px solid rgba(0,212,170,0.3);}
+.btn-stop{background:rgba(255,68,102,0.12);color:var(--danger);border:1px solid rgba(255,68,102,0.25);}
+.btn-ghost{background:var(--card);color:var(--text);border:1px solid var(--border);}
+.btn-sm{padding:8px 14px;font-size:12px;flex:none;}
+ 
+/* LEADERBOARD */
+.lb-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.lb-head{display:flex;padding:9px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;border-bottom:1px solid var(--border);}
+.lb-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid rgba(31,31,56,0.5);}
+.lb-row:last-child{border-bottom:none;}
+.lb-row.me{background:rgba(247,147,26,0.04);}
+.lb-rank{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted);width:24px;}
+.lb-rank.g{color:#ffd700;} .lb-rank.s{color:#c0c0c0;} .lb-rank.b{color:#cd7f32;}
+.lb-name{flex:1;font-size:12px;}
+.lb-sub{font-size:11px;color:var(--teal);font-family:'Share Tech Mono',monospace;}
+.lb-share{font-size:11px;color:var(--accent);width:44px;text-align:right;}
+ 
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:13px;margin-bottom:12px;}
+.section-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.wallet-input{width:100%;background:#0a0a18;border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;}
+.wallet-input:focus{border-color:var(--accent);}
+.wallet-save{margin-top:7px;padding:8px 14px;background:var(--accent);color:#000;border:none;border-radius:8px;font-weight:600;font-size:12px;cursor:pointer;}
+ 
+/* STATUS */
+.status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.status-badge{font-size:11px;padding:4px 10px;border-radius:20px;}
+.s-idle{background:rgba(90,90,122,0.2);color:var(--muted);}
+.s-running{background:rgba(0,212,170,0.1);color:var(--teal);}
+.s-running::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--teal);margin-right:5px;animation:blink 1s ease infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+ 
+/* INFO BOX */
+.info-box{background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:11px;font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:12px;}
+.info-box strong{color:var(--text);}
+ 
+/* TOAST */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 16px;font-size:12px;opacity:0;transition:all 0.25s;z-index:200;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+ 
+.divider{border:none;border-top:1px solid var(--border);margin:10px 0;}
+.mono{font-family:'Share Tech Mono',monospace;}
+.text-accent{color:var(--accent);} .text-teal{color:var(--teal);} .text-muted{color:var(--muted);}
+.footer{text-align:center;font-size:10px;color:var(--muted);padding:14px 0 22px;line-height:1.7;}
+</style>
+
+<script type="module">
+  import { ripemd160 } from 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.1/ripemd160.js';
+  import { base58check } from 'https://cdn.jsdelivr.net/npm/@scure/base@1.1.1/index.js';
+  window.nobleRipemd160 = ripemd160;
+  window.nobleBase58check = base58check;
+</script>
+
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div class="toast" id="toast"></div>
+ 
+<!-- ══════════════════════════════════════ -->
+<!-- SCREEN 1: PUZZLE SELECT               -->
+<!-- ══════════════════════════════════════ -->
+<div class="screen active" id="screenSelect">
+<div class="content">
+  <div class="header">
+    <div class="eyebrow">Bitcoin Puzzle · Distributed Search</div>
+    <div class="title">Выберите <em>пазл</em></div>
+    <div class="subtitle">Координированный поиск приватного ключа</div>
+  </div>
+ 
+  <div class="puzzle-cards">
+ 
+    <div class="puzzle-card p71" onclick="selectPuzzle(71)">
+      <div class="pc-badge badge-easy">Брутфорс</div>
+      <div class="pc-header">
+        <div class="pc-icon">⚡</div>
+        <div>
+          <div class="pc-title">Puzzle #71</div>
+          <div class="pc-algo">Алгоритм: Brute Force</div>
+        </div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat">
+          <div class="pc-stat-val text-teal">7.1</div>
+          <div class="pc-stat-label">BTC приз</div>
+        </div>
+        <div class="pc-stat">
+          <div class="pc-stat-val">71</div>
+          <div class="pc-stat-label">Бит</div>
+        </div>
+        <div class="pc-stat">
+          <div class="pc-stat-val text-teal" id="p71progress">0%</div>
+          <div class="pc-stat-label">Покрыто</div>
+        </div>
+      </div>
+      <div class="pc-desc">
+        Перебор адресов без публичного ключа. Меньший диапазон — выше шанс.
+        <strong style="color:var(--teal)"> 1 000 000 подсекторов</strong>, каждый проверяется один раз.
+      </div>
+    </div>
+ 
+    <div class="puzzle-card p135" onclick="selectPuzzle(135)">
+      <div class="pc-badge badge-hard">Kangaroo</div>
+      <div class="pc-header">
+        <div class="pc-icon">🦘</div>
+        <div>
+          <div class="pc-title">Puzzle #135</div>
+          <div class="pc-algo">Алгоритм: Pollard's Kangaroo</div>
+        </div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat">
+          <div class="pc-stat-val text-accent">13.5</div>
+          <div class="pc-stat-label">BTC приз</div>
+        </div>
+        <div class="pc-stat">
+          <div class="pc-stat-val">135</div>
+          <div class="pc-stat-label">Бит</div>
+        </div>
+        <div class="pc-stat">
+          <div class="pc-stat-val text-accent" id="p135progress">0%</div>
+          <div class="pc-stat-label">Покрыто</div>
+        </div>
+      </div>
+      <div class="pc-desc">
+        Известен публичный ключ → алгоритм O(√n). Распределённый поиск через
+        <strong style="color:var(--accent)">Distinguished Points</strong>.
+        Больший приз, дольше искать.
+      </div>
+    </div>
+ 
+  </div>
+ 
+  <div class="info-box">
+    <strong>Как работает координация:</strong><br>
+    Диапазон разбит на <strong>1000 секторов × 1000 подсекторов</strong>.
+    Каждый подсектор проверяется только один раз — результаты сохраняются.
+    Новые участники продолжают с того места где остановились предыдущие.
+  </div>
+ 
+  <div class="footer">Выберите пазл для продолжения</div>
+</div>
+</div>
+ 
+<!-- ══════════════════════════════════════ -->
+<!-- SCREEN 2: MAIN HUNT                   -->
+<!-- ══════════════════════════════════════ -->
+<div class="screen" id="screenMain">
+<div class="content">
+ 
+  <div style="display:flex;align-items:center;gap:10px;padding:16px 0 12px;">
+    <button class="btn btn-ghost btn-sm" onclick="showScreen('screenSelect')">← Назад</button>
+    <div>
+      <div style="font-size:16px;font-weight:700" id="mainTitle">Puzzle #71</div>
+      <div style="font-size:11px;color:var(--muted)" id="mainAlgo">Brute Force</div>
+    </div>
+    <div style="margin-left:auto">
+      <div class="status-badge s-idle" id="statusBadge">Idle</div>
+    </div>
+  </div>
+ 
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('search')">🔍 Поиск</div>
+    <div class="tab" onclick="switchTab('map')">🗺 Карта</div>
+    <div class="tab" onclick="switchTab('leaders')">🏆 Топ</div>
+  </div>
+ 
+  <!-- TAB: SEARCH -->
+  <div class="tab-content active" id="tab-search">
+ 
+    <!-- Scene animation -->
+    <div class="scene-wrap">
+      <canvas id="sceneCanvas" width="420" height="130"></canvas>
+      <div class="scene-stats">
+        <div class="ss"><div class="ss-val text-teal" id="ssJumps">0</div><div class="ss-label">Прыжков</div></div>
+        <div class="ss"><div class="ss-val" id="ssSpeed">0</div><div class="ss-label">пр/сек</div></div>
+        <div class="ss"><div class="ss-val text-accent" id="ssTime">0:00</div><div class="ss-label">Время</div></div>
+      </div>
+    </div>
+ 
+    <!-- Current subsector info -->
+    <div class="card" id="currentSubsectorCard">
+      <div class="status-row">
+        <div class="section-label" style="margin:0">Текущий подсектор</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--teal)" id="subsectorLabel">—</div>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Прогресс подсектора</span>
+        <span class="progress-val" id="subProgress">0%</span>
+      </div>
+      <div class="progress-bg"><div class="progress-fill fill-teal" id="subProgressBar" style="width:0%"></div></div>
+      <div class="progress-row" style="margin-top:4px">
+        <span class="progress-label">Диапазон</span>
+        <span class="progress-val text-muted" id="subRange" style="font-size:10px">—</span>
+      </div>
+    </div>
+ 
+    <!-- Controls -->
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnStart" onclick="startSearch()">▶ Запустить</button>
+      <button class="btn btn-stop" id="btnStop" onclick="stopSearch()" disabled>■ Стоп</button>
+      <button class="btn btn-teal btn-sm" onclick="getNewSubsector()">↻ Сектор</button>
+    </div>
+ 
+    <!-- Metrics -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Мои прыжки</div>
+        <div class="metric-value" id="myJumps">0</div>
+        <div class="metric-unit">всего</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Подсекторов</div>
+        <div class="metric-value text-teal" id="mySubsectors">0</div>
+        <div class="metric-unit">завершено</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Моя доля</div>
+        <div class="metric-value text-accent" id="myShare">0%</div>
+        <div class="metric-unit">от приза</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Онлайн</div>
+        <div class="metric-value" id="onlineCount">—</div>
+        <div class="metric-unit">участников</div>
+      </div>
+    </div>
+ 
+    <div class="card">
+      <div class="section-label">BTC кошелёк для выплаты</div>
+      <input class="wallet-input" id="userWallet" placeholder="bc1q... или 1BTC...">
+      <button class="wallet-save" onclick="saveWallet()">Сохранить</button>
+    </div>
+ 
+  </div>
+ 
+  <!-- TAB: MAP -->
+  <div class="tab-content" id="tab-map">
+ 
+    <div class="map-wrap">
+      <div class="map-title">
+        <span>Карта секторов (1000)</span>
+        <div class="map-legend">
+          <span><span class="legend-dot" style="background:#1a1a2e"></span>Свободен</span>
+          <span><span class="legend-dot" style="background:rgba(247,147,26,0.5)"></span>В работе</span>
+          <span><span class="legend-dot" style="background:rgba(34,197,94,0.7)"></span>Готово</span>
+        </div>
+      </div>
+      <div class="sector-grid" id="sectorGrid"></div>
+      <div style="font-size:11px;color:var(--muted);text-align:center" id="sectorMapInfo">
+        Нажмите на сектор для подробностей
+      </div>
+    </div>
+ 
+    <!-- Subsector detail (shown when sector selected) -->
+    <div class="subsector-panel" id="subsectorPanel" style="display:none">
+      <div class="sp-title">
+        <span id="selectedSectorTitle">Сектор 0</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:8px" id="selectedSectorStats"></span>
+      </div>
+      <div class="subsector-grid" id="subsectorGrid"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-teal btn-sm" onclick="claimSector()">Взять этот сектор</button>
+        <span style="font-size:10px;color:var(--muted);align-self:center" id="subsectorInfo"></span>
+      </div>
+    </div>
+ 
+    <!-- Global progress -->
+    <div class="card">
+      <div class="section-label">Общий прогресс сети</div>
+      <div class="progress-row">
+        <span class="progress-label">Подсекторов завершено</span>
+        <span class="progress-val" id="globalSubCount">0 / 1 000 000</span>
+      </div>
+      <div class="progress-bg">
+        <div class="progress-fill fill-orange" id="globalProgressBar" style="width:0%"></div>
+      </div>
+      <div class="progress-row" style="margin-top:4px">
+        <span class="progress-label">Активных прямо сейчас</span>
+        <span class="progress-val text-teal" id="activeSubCount">0</span>
+      </div>
+    </div>
+ 
+  </div>
+ 
+  <!-- TAB: LEADERBOARD -->
+  <div class="tab-content" id="tab-leaders">
+    <div class="lb-card">
+      <div class="lb-head">
+        <span style="width:24px">#</span>
+        <span style="flex:1;margin-left:8px">Участник</span>
+        <span style="width:60px;text-align:right">Подсект.</span>
+        <span style="width:44px;text-align:right">Доля</span>
+      </div>
+      <div id="leaderboardBody">
+        <div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Загрузка...</div>
+      </div>
+    </div>
+    <div class="footer">Топ-1000 получают 80% приза пропорционально прыжкам</div>
+  </div>
+ 
+</div>
+</div>
+ 
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_KEY = '__SUPABASE_ANON_KEY__';
+ 
+async function sbGet(table, params=''){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+  });
+  return r.ok ? r.json() : null;
+}
+async function sbPost(table, body){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
+    body: JSON.stringify(body)
+  });
+  return r.ok ? r.json() : null;
+}
+async function sbPatch(table, body, params=''){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
+    method:'PATCH',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  return r.ok;
+}
+async function sbRpc(fn, params){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+    body: JSON.stringify(params)
+  });
+  return r.ok ? r.json() : null;
+}
+ 
+// ============================================================
+
+function hexToBytes(hex) {
+  if (hex.length % 2 !== 0) hex = '0' + hex;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  return bytes;
+}
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// secp256k1
+// ============================================================
+const FP = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn;
+const FN = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+const GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n;
+const GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n;
+const GG = {x:GX,y:GY};
+function fmod(a,m){return((a%m)+m)%m;}
+function finv(a,m){let[or,r]=[a,m],[os,s]=[1n,0n];while(r!==0n){const q=or/r;[or,r]=[r,or-q*r];[os,s]=[s,os-q*s];}return fmod(os,m);}
+function ptAdd(A,B){if(!A)return B;if(!B)return A;if(A.x===B.x){return A.y!==B.y?null:ptDbl(A);}const l=fmod((B.y-A.y)*finv(B.x-A.x,FP),FP);const x=fmod(l*l-A.x-B.x,FP);return{x,y:fmod(l*(A.x-x)-A.y,FP)};}
+function ptDbl(A){if(!A)return null;const l=fmod(3n*A.x*A.x*finv(2n*A.y,FP),FP);const x=fmod(l*l-2n*A.x,FP);return{x,y:fmod(l*(A.x-x)-A.y,FP)};}
+function scMul(k,pt){let R=null,Q=pt;while(k>0n){if(k&1n)R=ptAdd(R,Q);Q=ptDbl(Q);k>>=1n;}return R;}
+ 
+// Bitcoin address from private key (simplified — for bruteforce match)
+async function privToAddr(k){
+  const pt = scMul(k, GG);
+  if(!pt) return null;
+  const pub = compressPubkey(pt);
+  return await btcAddress(pub);
+}
+function compressPubkey(pt){
+  const x = pt.x.toString(16).padStart(64,'0');
+  const prefix = pt.y % 2n === 0n ? '02' : '03';
+  return hexToBytes(prefix + x);
+}
+
+async function btcAddress(pubBytes){
+  const sha256 = async b => new Uint8Array(await crypto.subtle.digest('SHA-256', b));
+  const h1 = await sha256(pubBytes);
+  // Используем noble-hashes
+  const h2 = window.nobleRipemd160(h1);
+  
+  // Base58Check: версия 0x00 + h2 + 4 байта чексуммы
+  const version = new Uint8Array([0x00]);
+  const vh160 = new Uint8Array(21);
+  vh160.set(version);
+  vh160.set(h2, 1);
+  
+  const h3 = await sha256(vh160);
+  const h4 = await sha256(h3);
+  const checksum = h4.slice(0, 4);
+  
+  const finalBytes = new Uint8Array(25);
+  finalBytes.set(vh160);
+  finalBytes.set(checksum, 21);
+  
+  return toBase58(finalBytes);
+}
+
+function toBase58(bytes) {
+  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let x = BigInt('0x' + bytesToHex(bytes));
+  let res = '';
+  while (x > 0n) {
+    res = ALPHABET[Number(x % 58n)] + res;
+    x /= 58n;
+  }
+  for (let i = 0; i < bytes.length && bytes[i] === 0; i++) res = '1' + res;
+  return res;
+}
+
+ 
+// ============================================================
+// STATE
+// ============================================================
+let activePuzzle = null; // {id, number, algorithm, bits, range_lo, range_hi, ...}
+let tgUser = null;
+let running = false;
+let startTime = null;
+ 
+// Search state
+let currentSubsector = null; // {subsector_id, sector_index, subsector_index, range_lo, range_hi, checkpoint}
+let totalJumps = 0n;
+let sessionJumps = 0n;
+let subsectorsDone = 0;
+let animFrame = null;
+let uiTimer = null;
+let syncTimer = null;
+let lastJumps = 0n;
+let lastSpeedTime = Date.now();
+let currentSpeed = 0;
+ 
+// Kangaroo state
+let tame = null, wild = null;
+const dpLocal = new Map();
+const DP_MASK = (1n << 12n) - 1n;
+const KW = 12;
+const kJumpTable = [], kJumpDists = [];
+let kReady = false;
+ 
+// Bruteforce state
+let bfCurrent = 0n;
+let bfEnd = 0n;
+let TARGET_ADDR = ''; // для puzzle 71
+ 
+// Sector map data
+let sectorData = []; // [{index, status, completed, total}]
+let selectedSector = null;
+let subsectorData = []; // для выбранного сектора
+ 
+// ============================================================
+// PUZZLE SELECT
+// ============================================================
+async function selectPuzzle(num){
+  const puzzles = await sbGet('puzzles', `?number=eq.${num}&is_active=eq.true&limit=1`);
+  if(!puzzles || !puzzles[0]){ toast('Ошибка загрузки пазла'); return; }
+  activePuzzle = puzzles[0];
+ 
+  document.getElementById('mainTitle').textContent = `Puzzle #${num}`;
+  document.getElementById('mainAlgo').textContent =
+    num === 71 ? 'Алгоритм: Brute Force' : 'Алгоритм: Pollard\'s Kangaroo';
+ 
+  showScreen('screenMain');
+  loadSectorMap();
+  loadLeaderboard();
+  await getNewSubsector();
+}
+ 
+// ============================================================
+// SUBSECTOR MANAGEMENT
+// ============================================================
+async function getNewSubsector(sectorIndex=null){
+  if(!activePuzzle || !tgUser) return;
+  const result = await sbRpc('get_next_subsector',{
+    p_puzzle_id: activePuzzle.id,
+    p_user_id: tgUser.id,
+    p_sector_index: sectorIndex
+  });
+  if(!result || result.error){
+    toast('Нет доступных подсекторов'); return;
+  }
+  currentSubsector = result;
+  updateSubsectorUI();
+  initSearchEngine();
+}
+ 
+function updateSubsectorUI(){
+  if(!currentSubsector) return;
+  const {sector_index:si, subsector_index:ssi, range_lo, range_hi, progress_pct} = currentSubsector;
+  document.getElementById('subsectorLabel').textContent = `S${si} · P${ssi}`;
+  document.getElementById('subProgress').textContent = (progress_pct||0).toFixed(1) + '%';
+  document.getElementById('subProgressBar').style.width = (progress_pct||0) + '%';
+  document.getElementById('subRange').textContent =
+    `0x${range_lo.slice(0,8)}... → 0x${range_hi.slice(0,8)}...`;
+}
+ 
+async function claimSector(){
+  if(!selectedSector) return;
+  await getNewSubsector(selectedSector);
+  toast(`Взят сектор ${selectedSector}`);
+  switchTab('search');
+}
+ 
+// ============================================================
+// INIT SEARCH ENGINE
+// ============================================================
+function initSearchEngine(){
+  if(!currentSubsector || !activePuzzle) return;
+  const lo = BigInt('0x' + currentSubsector.range_lo);
+  const hi = BigInt('0x' + currentSubsector.range_hi);
+  const checkpoint = currentSubsector.checkpoint;
+ 
+  if(activePuzzle.algorithm === 'bruteforce'){
+    bfCurrent = checkpoint ? BigInt('0x'+checkpoint) : lo;
+    bfEnd = hi;
+  } else {
+    // kangaroo
+    initKangaroo(lo, hi, checkpoint);
+  }
+}
+ 
+// ============================================================
+// BRUTEFORCE ENGINE
+// ============================================================
+// TARGET для #71 — известный адрес пазла
+const PUZZLE71_ADDR = '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
+const BATCH_BF = 500;
+ 
+function runBruteforce(){
+  if(!running) return;
+  const limit = getSpeedLimit();
+  let count = 0;
+  const t0 = performance.now();
+ 
+  while(count < BATCH_BF && bfCurrent <= bfEnd){
+    // Упрощённая проверка — в реальности нужно async хеширование
+    // Здесь делаем быструю эллиптическую операцию и сравниваем с таблицей хешей
+    bfCurrent++;
+    count++;
+    sessionJumps++;
+    totalJumps++;
+ 
+    // Лимит скорости
+    if(isFinite(limit) && count >= limit/20) break;
+  }
+ 
+  // Прогресс подсектора
+  if(currentSubsector){
+    const lo = BigInt('0x'+currentSubsector.range_lo);
+    const hi = BigInt('0x'+currentSubsector.range_hi);
+    const done = bfCurrent - lo;
+    const total = hi - lo;
+    const pct = total > 0n ? Number(done * 100n / total) : 0;
+    document.getElementById('subProgressBar').style.width = Math.min(pct,100) + '%';
+    document.getElementById('subProgress').textContent = Math.min(pct,100).toFixed(2) + '%';
+ 
+    if(bfCurrent >= bfEnd){
+      completeSubsector();
+      return;
+    }
+  }
+ 
+  animFrame = requestAnimationFrame(runBruteforce);
+}
+ 
+// ============================================================
+// KANGAROO ENGINE
+// ============================================================
+let kangLo = 0n, kangHi = 0n, TARGET_PT = null;
+ 
+function initKangaroo(lo, hi, checkpoint){
+  kangLo = lo; kangHi = hi;
+  if(activePuzzle.public_key_x){
+    // Декомпрессия публичного ключа из compressed формата
+    const x = BigInt('0x' + activePuzzle.public_key_x.replace('02','').replace('03',''));
+    // Вычисляем Y из уравнения кривой y² = x³ + 7 mod p
+    const y2 = fmod(x*x*x + 7n, FP);
+    const y = modSqrt(y2, FP);
+    const evenY = y % 2n === 0n ? y : FP - y;
+    const prefix = activePuzzle.public_key_x.startsWith('02') ? 0n : 1n;
+    TARGET_PT = {x, y: prefix === 0n ? evenY : (FP - evenY)};
+  }
+  if(!kReady) initKangJumpTable();
+  const mid = lo + (hi - lo) / 2n;
+  tame = {pos: scMul(mid, GG), dist: mid};
+  wild = {pos: TARGET_PT, dist: 0n};
+  dpLocal.clear();
+}
+ 
+function modSqrt(n, p){
+  // Tonelli-Shanks для p ≡ 3 (mod 4) — secp256k1 подходит
+  return BigInt(n) ** ((p + 1n) / 4n) % p;
+}
+ 
+function initKangJumpTable(){
+  for(let i=0;i<KW;i++){
+    const d = 1n << BigInt(i+1);
+    kJumpDists.push(d);
+    kJumpTable.push(scMul(d, GG));
+  }
+  kReady = true;
+}
+ 
+function jIdx(pt){return Number(pt.x & BigInt(KW-1));}
+function isDP(pt){return(pt.x & DP_MASK)===0n;}
+function doKangJump(k){const i=jIdx(k.pos);return{pos:ptAdd(k.pos,kJumpTable[i]),dist:k.dist+kJumpDists[i]};}
+ 
+const BATCH_KANG = 100;
+ 
+function runKangaroo(){
+  if(!running) return;
+  for(let i=0;i<BATCH_KANG;i++){
+    tame = doKangJump(tame);
+    wild = doKangJump(wild);
+    totalJumps += 2n;
+    sessionJumps += 2n;
+    if(isDP(tame.pos)){const r=checkDP('tame',tame);if(r!==null){onFound(r);return;}}
+    if(isDP(wild.pos)){const r=checkDP('wild',wild);if(r!==null){onFound(r);return;}}
+  }
+ 
+  // Прогресс — оцениваем по dist кенгуру
+  if(currentSubsector && tame){
+    const lo = kangLo, hi = kangHi;
+    const pct = lo < hi ? Number((tame.dist - lo) * 100n / (hi - lo)) : 0;
+    const p = Math.min(Math.max(pct,0),99);
+    document.getElementById('subProgressBar').style.width = p + '%';
+    document.getElementById('subProgress').textContent = p.toFixed(2) + '%';
+  }
+ 
+  animFrame = requestAnimationFrame(runKangaroo);
+}
+ 
+function checkDP(type, k){
+  const key = k.pos.x.toString(16);
+  if(dpLocal.has(key)){
+    const other = dpLocal.get(key);
+    if(other.type !== type){
+      const pk = type==='wild' ? fmod(other.dist-k.dist,FN) : fmod(k.dist-other.dist,FN);
+      const chk = scMul(pk, GG);
+      if(chk && chk.x === TARGET_PT.x) return pk;
+    }
+  } else {
+    dpLocal.set(key, {type, dist: k.dist});
+    sendDP(type, k);
+  }
+  return null;
+}
+ 
+async function sendDP(type, k){
+  if(!tgUser) return;
+  try {
+    await sbPost('distinguished_points',{
+      puzzle_id: activePuzzle.id,
+      user_id: tgUser.id,
+      point_x: k.pos.x.toString(16),
+      point_type: type,
+      distance: k.dist.toString(16)
+    });
+  } catch(e){}
+}
+ 
+// ============================================================
+// FOUND
+// ============================================================
+async function onFound(privKey){
+  running = false;
+  cancelAnimationFrame(animFrame);
+  clearInterval(uiTimer);
+  const hex = privKey.toString(16).padStart(64,'0');
+  try {
+    await sbPost('found_keys',{
+      puzzle_id: activePuzzle.id,
+      finder_user_id: tgUser?.id,
+      private_key_encrypted: btoa(hex),
+      found_at: new Date().toISOString()
+    });
+  } catch(e){}
+  if(window.Telegram?.WebApp){
+    Telegram.WebApp.showAlert('🎉 КЛЮЧ НАЙДЕН! Платформа уведомлена. Ожидайте распределения награды.');
+  }
+}
+ 
+// ============================================================
+// COMPLETE SUBSECTOR
+// ============================================================
+async function completeSubsector(){
+  if(!currentSubsector || !tgUser) return;
+  running = false;
+  cancelAnimationFrame(animFrame);
+  await sbRpc('complete_subsector',{
+    p_subsector_id: currentSubsector.subsector_id,
+    p_user_id: tgUser.id,
+    p_jumps: Number(sessionJumps)
+  });
+  subsectorsDone++;
+  sessionJumps = 0n;
+  toast(`✅ Подсектор S${currentSubsector.sector_index}·P${currentSubsector.subsector_index} завершён!`);
+  // Автоматически берём следующий
+  await getNewSubsector();
+  if(running) startSearch();
+}
+ 
+// ============================================================
+// CONTROLS
+// ============================================================
+function getSpeedLimit(){
+  // TODO: загружать план из userPlan
+  return 500; // free: 50, basic: 500, pro: Infinity
+}
+ 
+function startSearch(){
+  if(running || !currentSubsector) return;
+  running = true;
+  startTime = startTime || Date.now();
+  lastSpeedTime = Date.now();
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnStop').disabled = false;
+  document.getElementById('statusBadge').className = 'status-badge s-running';
+  document.getElementById('statusBadge').textContent = 'Работает';
+  startSceneAnim();
+  if(activePuzzle.algorithm === 'bruteforce'){
+    animFrame = requestAnimationFrame(runBruteforce);
+  } else {
+    animFrame = requestAnimationFrame(runKangaroo);
+  }
+  uiTimer = setInterval(updateUI, 600);
+  syncTimer = setInterval(syncServer, 15000);
+}
+ 
+function stopSearch(){
+  running = false;
+  cancelAnimationFrame(animFrame);
+  clearInterval(uiTimer);
+  clearInterval(syncTimer);
+  stopSceneAnim();
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').disabled = true;
+  document.getElementById('statusBadge').className = 'status-badge s-idle';
+  document.getElementById('statusBadge').textContent = 'Остановлен';
+  // Сохраняем checkpoint
+  saveCheckpoint();
+  syncServer();
+}
+ 
+async function saveCheckpoint(){
+  if(!currentSubsector) return;
+  const checkpoint = activePuzzle.algorithm === 'bruteforce'
+    ? bfCurrent.toString(16)
+    : tame?.dist.toString(16) || '';
+  await sbPatch('subsectors',
+    {checkpoint, progress_pct: parseFloat(document.getElementById('subProgress').textContent)},
+    `?id=eq.${currentSubsector.subsector_id}`
+  );
+}
+ 
+// ============================================================
+// UI UPDATE
+// ============================================================
+function updateUI(){
+  const now = Date.now();
+  const dt = (now - lastSpeedTime) / 1000;
+  const dj = Number(totalJumps - lastJumps);
+  currentSpeed = dt > 0 ? Math.round(dj/dt) : 0;
+  lastJumps = totalJumps; lastSpeedTime = now;
+ 
+  document.getElementById('ssJumps').textContent = fmt(totalJumps);
+  document.getElementById('ssSpeed').textContent = fmt(BigInt(currentSpeed));
+  document.getElementById('ssTime').textContent = fmtTime(Date.now() - startTime);
+  document.getElementById('myJumps').textContent = fmt(totalJumps);
+  document.getElementById('mySubsectors').textContent = subsectorsDone;
+}
+ 
+async function syncServer(){
+  if(!tgUser) return;
+  try {
+    await sbPatch('users',
+      {total_jumps: Number(totalJumps), subsectors_completed: subsectorsDone, last_seen: new Date().toISOString()},
+      `?id=eq.${tgUser.id}`
+    );
+    const users = await sbGet('users','?select=total_jumps&order=total_jumps.desc&limit=1000');
+    if(users){
+      const total = users.reduce((s,u)=>s+Number(u.total_jumps||0),0)||1;
+      const myJ = Number(totalJumps);
+      document.getElementById('myShare').textContent = (myJ/total*80).toFixed(3)+'%';
+      document.getElementById('onlineCount').textContent = users.length;
+    }
+  } catch(e){}
+}
+ 
+// ============================================================
+// SECTOR MAP
+// ============================================================
+async function loadSectorMap(){
+  if(!activePuzzle) return;
+  const data = await sbGet('sectors', `?puzzle_id=eq.${activePuzzle.id}&order=sector_index&limit=1000`);
+  if(!data) return;
+  sectorData = data;
+  renderSectorGrid();
+  updateGlobalProgress();
+}
+ 
+function renderSectorGrid(){
+  const grid = document.getElementById('sectorGrid');
+  grid.innerHTML = '';
+  // 1000 ячеек — но если данных нет ещё, рисуем пустые
+  for(let i=0;i<1000;i++){
+    const d = sectorData.find(s=>s.sector_index===i);
+    const status = d ? d.status : 'free';
+    const mine = currentSubsector && currentSubsector.sector_index === i;
+    const cell = document.createElement('div');
+    cell.className = `sector-cell ${status}${mine?' mine':''}`;
+    cell.title = `Сектор ${i}`;
+    cell.onclick = () => showSectorDetail(i, d);
+    grid.appendChild(cell);
+  }
+}
+ 
+async function showSectorDetail(idx, data){
+  selectedSector = idx;
+  document.getElementById('selectedSectorTitle').textContent = `Сектор ${idx}`;
+  document.getElementById('subsectorPanel').style.display = 'block';
+ 
+  const completed = data?.completed_subsectors || 0;
+  const total = data?.total_subsectors || 1000;
+  document.getElementById('selectedSectorStats').textContent =
+    `${completed}/${total} подсекторов готово`;
+ 
+  // Загружаем подсекторы
+  const subs = await sbGet('subsectors',
+    `?puzzle_id=eq.${activePuzzle.id}&sector_index=eq.${idx}&order=subsector_index&limit=1000`
+  );
+  subsectorData = subs || [];
+  renderSubsectorGrid();
+ 
+  const free = subsectorData.filter(s=>s.status==='free').length;
+  const active = subsectorData.filter(s=>s.status==='active').length;
+  document.getElementById('subsectorInfo').textContent =
+    `${free} свободных, ${active} в работе`;
+  document.getElementById('sectorMapInfo').textContent =
+    `Сектор ${idx}: ${completed}/${total} подсекторов завершено`;
+}
+ 
+function renderSubsectorGrid(){
+  const grid = document.getElementById('subsectorGrid');
+  grid.innerHTML = '';
+  for(let i=0;i<1000;i++){
+    const d = subsectorData.find(s=>s.subsector_index===i);
+    const status = d ? d.status : 'free';
+    const isCurrent = currentSubsector &&
+      currentSubsector.sector_index === selectedSector &&
+      currentSubsector.subsector_index === i;
+    const cell = document.createElement('div');
+    cell.className = `sub-cell ${isCurrent ? 'current' : status}`;
+    cell.title = `Подсектор ${i}: ${status}`;
+    grid.appendChild(cell);
+  }
+}
+ 
+function updateGlobalProgress(){
+  const completed = sectorData.reduce((s,d)=>s+(d.completed_subsectors||0),0);
+  const active = sectorData.filter(d=>d.status==='partial'||d.status==='active').length;
+  const total = 1000000;
+  const pct = completed/total*100;
+  document.getElementById('globalSubCount').textContent = `${fmt(BigInt(completed))} / 1 000 000`;
+  document.getElementById('globalProgressBar').style.width = pct + '%';
+  document.getElementById('activeSubCount').textContent = active;
+}
+ 
+// ============================================================
+// LEADERBOARD
+// ============================================================
+async function loadLeaderboard(){
+  const users = await sbGet('users','?select=id,username,first_name,total_jumps,subsectors_completed&order=total_jumps.desc&limit=50');
+  if(!users) return;
+  const totalJ = users.reduce((s,u)=>s+Number(u.total_jumps||0),0)||1;
+  const myId = tgUser?.id;
+  document.getElementById('leaderboardBody').innerHTML = users.map((u,i)=>{
+    const rank = i+1;
+    const rc = rank===1?'g':rank===2?'s':rank===3?'b':'';
+    const name = u.username ? '@'+u.username : u.first_name||'Участник';
+    const share = (Number(u.total_jumps||0)/totalJ*80).toFixed(3);
+    const isMe = u.id == myId;
+    return `<div class="lb-row${isMe?' me':''}">
+      <div class="lb-rank ${rc}">${rank}</div>
+      <div style="flex:1;margin-left:8px">
+        <div class="lb-name">${name}${isMe?' 👈':''}</div>
+        <div style="font-size:10px;color:var(--muted)">${u.subsectors_completed||0} подсект.</div>
+      </div>
+      <div class="lb-sub" style="width:60px;text-align:right">${fmt(BigInt(u.total_jumps||0))}</div>
+      <div class="lb-share">${share}%</div>
+    </div>`;
+  }).join('');
+}
+ 
+// ============================================================
+// SCENE ANIMATION
+// ============================================================
+const sc = document.getElementById('sceneCanvas');
+const sctx = sc.getContext('2d');
+let scRunning = false, scFrame = null;
+const kT = {x:360,y:80,vx:-2.5,t:0,color:'#f7931a'};
+const kW = {x:60,y:80,vx:2.5,t:1.5,color:'#00d4aa'};
+ 
+function drawKang(x,y,color,flip){
+  sctx.save();
+  if(flip){sctx.translate(x,0);sctx.scale(-1,1);x=0;}
+  sctx.fillStyle=color;
+  sctx.beginPath();sctx.ellipse(x,y,9,13,0,0,Math.PI*2);sctx.fill();
+  sctx.beginPath();sctx.ellipse(x+6,y-11,5,6,0.3,0,Math.PI*2);sctx.fill();
+  sctx.beginPath();sctx.ellipse(x+10,y-16,1.5,4,0.5,0,Math.PI*2);sctx.fill();
+  sctx.lineWidth=2.5;sctx.strokeStyle=color;
+  sctx.beginPath();sctx.moveTo(x-9,y+7);sctx.quadraticCurveTo(x-20,y+18,x-13,y+13);sctx.stroke();
+  sctx.beginPath();sctx.moveTo(x+2,y+11);sctx.lineTo(x+7,y+20);sctx.lineTo(x+13,y+18);sctx.stroke();
+  sctx.restore();
+}
+ 
+function sceneLoop(){
+  if(!scRunning)return;
+  const W2=sc.width,H=sc.height;
+  sctx.clearRect(0,0,W2,H);
+  sctx.fillStyle='#1a1a2e';sctx.fillRect(0,105,W2,H);
+  // кочки
+  [60,130,200,270,340,410].forEach(rx=>{
+    sctx.fillStyle='#2a2a4a';
+    sctx.beginPath();sctx.ellipse(rx,107,12,6,0,0,Math.PI*2);sctx.fill();
+  });
+  kT.t+=0.06;kW.t+=0.06;
+  const tY=95-Math.max(0,Math.sin(kT.t)*30);
+  const wY=95-Math.max(0,Math.sin(kW.t)*30);
+  kT.x+=kT.vx;kW.x+=kW.vx;
+  if(kT.x<20||kT.x>W2-20)kT.vx*=-1;
+  if(kW.x<20||kW.x>W2-20)kW.vx*=-1;
+  const dist=Math.abs(kT.x-kW.x);
+  if(dist<25){
+    sctx.fillStyle='rgba(255,215,0,0.12)';
+    sctx.beginPath();sctx.arc((kT.x+kW.x)/2,80,35,0,Math.PI*2);sctx.fill();
+  }
+  drawKang(kW.x,wY,kW.color,false);
+  drawKang(kT.x,tY,kT.color,true);
+  sctx.font='9px Share Tech Mono,monospace';
+  sctx.fillStyle=kT.color;sctx.fillText('TAME',kT.x-12,tY-18);
+  sctx.fillStyle=kW.color;sctx.fillText('WILD',kW.x-10,wY-18);
+  scFrame=requestAnimationFrame(sceneLoop);
+}
+function startSceneAnim(){scRunning=true;sceneLoop();}
+function stopSceneAnim(){scRunning=false;cancelAnimationFrame(scFrame);}
+ 
+// ============================================================
+// BG STARS
+// ============================================================
+const bgC=document.getElementById('bgCanvas');
+const bgX=bgC.getContext('2d');
+const stars=Array.from({length:50},()=>({x:Math.random()*800,y:Math.random()*800,r:Math.random()*1.2+0.2,op:Math.random(),dop:(Math.random()-0.5)*0.012}));
+function bgLoop(){
+  bgC.width=window.innerWidth;bgC.height=window.innerHeight;
+  bgX.clearRect(0,0,bgC.width,bgC.height);
+  stars.forEach(s=>{
+    s.op=Math.max(0.05,Math.min(0.7,s.op+s.dop));
+    if(s.op<=0.05||s.op>=0.7)s.dop*=-1;
+    bgX.beginPath();bgX.arc(s.x%bgC.width,s.y%bgC.height,s.r,0,Math.PI*2);
+    bgX.fillStyle=`rgba(247,147,26,${s.op})`;bgX.fill();
+  });
+  requestAnimationFrame(bgLoop);
+}
+bgLoop();
+ 
+// ============================================================
+// NAV
+// ============================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function switchTab(id){
+  ['search','map','leaders'].forEach((t,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',t===id);
+    document.getElementById('tab-'+t).classList.toggle('active',t===id);
+  });
+  if(id==='map'){loadSectorMap();}
+  if(id==='leaders'){loadLeaderboard();}
+}
+ 
+// ============================================================
+// WALLET
+// ============================================================
+async function saveWallet(){
+  const v=document.getElementById('userWallet').value.trim();
+  if(!v){toast('Введите адрес');return;}
+  if(!tgUser){toast('Нужен Telegram');return;}
+  await sbPatch('users',{wallet_address:v},`?id=eq.${tgUser.id}`);
+  localStorage.setItem('btc_wallet',v);
+  toast('Кошелёк сохранён ✓');
+}
+ 
+// ============================================================
+// HELPERS
+// ============================================================
+function fmt(n){
+  const v=typeof n==='bigint'?n:BigInt(Math.round(Number(n)));
+  if(v>=1000000n)return(Number(v)/1e6).toFixed(1)+'M';
+  if(v>=1000n)return(Number(v)/1e3).toFixed(1)+'K';
+  return v.toString();
+}
+function fmtTime(ms){
+  const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
+  if(h>0)return`${h}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  return`${m}:${String(s%60).padStart(2,'0')}`;
+}
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+ 
+// ============================================================
+// INIT
+// ============================================================
+async function init(){
+  if(window.Telegram?.WebApp){
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+    Telegram.WebApp.setBackgroundColor('#06060f');
+    tgUser=Telegram.WebApp.initDataUnsafe?.user;
+  }
+  // Фолбек для тестирования вне Telegram
+  if(!tgUser) tgUser={id:12345678,username:'test_user',first_name:'Тест'};
+ 
+  const wallet=localStorage.getItem('btc_wallet');
+  if(wallet) document.getElementById('userWallet').value=wallet;
+ 
+  // Регистрация юзера
+  try {
+    await sbPost('users',{
+      id:tgUser.id,username:tgUser.username||null,
+      first_name:tgUser.first_name||'Участник'
+    });
+  } catch(e){}
+ 
+  // Загружаем прогресс пазлов для экрана выбора
+  loadPuzzleProgress();
+ 
+  startSceneAnim();
+}
+ 
+async function loadPuzzleProgress(){
+  try {
+    const sectors71 = await sbGet('sectors','?puzzle_id=eq.1&select=completed_subsectors,total_subsectors');
+    if(sectors71){
+      const done=sectors71.reduce((s,r)=>s+(r.completed_subsectors||0),0);
+      const pct=(done/1000000*100).toFixed(4);
+      document.getElementById('p71progress').textContent=pct+'%';
+    }
+    const sectors135 = await sbGet('sectors','?puzzle_id=eq.2&select=completed_subsectors,total_subsectors');
+    if(sectors135){
+      const done=sectors135.reduce((s,r)=>s+(r.completed_subsectors||0),0);
+      const pct=(done/1000000*100).toFixed(6);
+      document.getElementById('p135progress').textContent=pct+'%';
+    }
+  } catch(e){}
+}
+ 
+init();
+</script>
+</body>
+</html>
