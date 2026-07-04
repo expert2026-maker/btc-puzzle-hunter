@@ -507,8 +507,8 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 // CONFIG
 // ============================================================
 const SUPABASE_URL = 'https://ttjydnfqumtxhptugtun.supabase.co';
-const SUPABASE_KEY = 'sb_secret_UzDfICglJ40C7J8J8FYKQw_NoQtZTDj'; // service_role для admin
-const ADMIN_PASSWORD = 'admin12345'; // замените!
+const SUPABASE_KEY = localStorage.getItem('sb_service_key') || prompt('Enter Supabase Service Role Key:'); localStorage.setItem('sb_service_key', SUPABASE_KEY); // service_role для admin
+const ADMIN_PASSWORD = prompt('Set/Enter your Admin Password:'); // замените!
  
 // ============================================================
 // Auth
