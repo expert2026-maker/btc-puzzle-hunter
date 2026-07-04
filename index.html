@@ -459,7 +459,7 @@ async function sbGet(table, params=''){
     return await r.json();
   } catch (e) {
     console.error('Supabase Error:', e);
-    document.body.insertAdjacentHTML('afterbegin', `<div style='position:fixed;top:0;left:0;width:100%;background:red;color:white;z-index:99999;padding:10px;font-size:14px;font-family:sans-serif;'>КРИТИЧЕСКАЯ ОШИБКА: ${e.message}</div>`);
+    //, `<div style='position:fixed;top:0;left:0;width:100%;background:red;color:white;z-index:99999;padding:10px;font-size:14px;font-family:sans-serif;'>КРИТИЧЕСКАЯ ОШИБКА: ${e.message}</div>`);
     throw e;
   }
 }
