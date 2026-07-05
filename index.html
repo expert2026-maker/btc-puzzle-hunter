@@ -185,7 +185,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 </script>
 
 </head>
-<body><button onclick="location.reload(true)" style="position:fixed;bottom:10px;right:10px;z-index:9999;opacity:0.5;font-size:10px;">🔄 Reset Cache</button>
+<body>
 <canvas id="bgCanvas"></canvas>
 <div class="toast" id="toast"></div>
  
@@ -442,25 +442,10 @@ const SUPABASE_URL = 'https://ttjydnfqumtxhptugtun.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_83ALyXazxFelIUjpg5ri4g_-YcqZb4N';
  
 async function sbGet(table, params=''){
-  try {
-    const url = `${SUPABASE_URL}/rest/v1/${table}${params}`;
-    const r = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    if (!r.ok) {
-      const errText = await r.text();
-      throw new Error(`HTTP ${r.status}: ${errText}`);
-    }
-    return await r.json();
-  } catch (e) {
-    console.error('Supabase Error:', e);
-    throw e;
-  }
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+  });
+  return r.ok ? r.json() : null;
 }
 async function sbPost(table, body){
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{
@@ -480,6 +465,12 @@ async function sbPatch(table, body, params=''){
 }
 async function sbRpc(fn, params){
   const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+    body: JSON.stringify(params)
+  });
+  return r.ok ? r.json() : null;
+}/rest/v1/rpc/${fn}`,{
     method:'POST',
     headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
     body: JSON.stringify(params)
