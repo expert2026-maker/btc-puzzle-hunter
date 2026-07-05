@@ -608,11 +608,20 @@ async function selectPuzzle(num){
 // ============================================================
 async function getNewSubsector(sectorIndex=null){
   if(!activePuzzle || !tgUser) return;
+  console.log('Fetching subsector for puzzle:', activePuzzle.id, 'user:', tgUser.id);
   const result = await sbRpc('get_next_subsector',{
-    p_puzzle_id: activePuzzle.id,
-    p_user_id: tgUser.id,
-    p_sector_index: sectorIndex
+    p_puzzle_id: parseInt(activePuzzle.id),
+    p_user_id: parseInt(tgUser.id),
+    p_sector_index: sectorIndex !== null ? parseInt(sectorIndex) : null
   });
+  console.log('RPC Result:', result);
+  if(!result || result.error || result.subsector_id === undefined){
+    toast('Нет доступных подсекторов'); return;
+  }
+  currentSubsector = result;
+  updateSubsectorUI();
+  initSearchEngine();
+});
   if(!result || result.error){
     toast('Нет доступных подсекторов'); return;
   }
