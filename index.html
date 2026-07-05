@@ -589,7 +589,8 @@ let subsectorData = []; // для выбранного сектора
 // PUZZLE SELECT
 // ============================================================
 async function selectPuzzle(num){
-  const puzzles = await sbGet('puzzles', `?number=eq.${num}&status=eq.active&limit=1`);
+  const pid = num === 71 ? 1 : 2;
+  const puzzles = await sbGet('puzzles', `?id=eq.${pid}&limit=1`);
   if(!puzzles || !puzzles[0]){ toast('Ошибка загрузки пазла'); return; }
   activePuzzle = puzzles[0];
  
