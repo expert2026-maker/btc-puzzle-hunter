@@ -433,22 +433,33 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 
 
-<script type="module">
-  import { ripemd160 } from 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.1/ripemd160.js';
-  import { base58check } from 'https://cdn.jsdelivr.net/npm/@scure/base@1.1.1/index.js';
-  window.nobleRipemd160 = ripemd160;
-  window.nobleBase58check = base58check;
 
+
+<script>
   // CONFIG
   const SUPABASE_URL = 'https://ttjydnfqumtxhptugtun.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_83ALyXazxFelIUjpg5ri4g_-YcqZb4N';
 
   // GLOBALS
-  window.tgUser = null;
-  window.activePuzzle = null;
-  window.currentSubsector = null;
-  window.selectedSector = null;
-  window.isSearching = false;
+  let tgUser = null;
+  let activePuzzle = null;
+  let currentSubsector = null;
+  let selectedSector = null;
+  let isSearching = false;
+
+  // Noble dependencies (will be loaded dynamically)
+  let nobleRipemd160 = null;
+  let nobleBase58check = null;
+
+  async function loadDependencies() {
+    try {
+      const ripemd = await import('https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.1/ripemd160.js');
+      const b58 = await import('https://cdn.jsdelivr.net/npm/@scure/base@1.1.1/index.js');
+      nobleRipemd160 = ripemd.ripemd160;
+      nobleBase58check = b58.base58check;
+      console.log("Dependencies loaded");
+    } catch(e) { console.error("Dep load error:", e); }
+  }
 
   // API WRAPPERS
   async function sbGet(table, params=''){
@@ -474,91 +485,68 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     return r.ok ? r.json() : {error:true};
   }
 
-  // UI HELPERS
-  window.showScreen = (id) => {
+  // UI FUNCTIONS
+  function showScreen(id) {
+    console.log("Showing screen:", id);
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-  };
+    const target = document.getElementById(id);
+    if(target) target.classList.add('active');
+  }
 
-  window.toast = (msg) => {
+  function toast(msg) {
     const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  };
+    if(t) {
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+  }
 
-  // LOGIC
-  window.selectPuzzle = async (num) => {
-    console.log("Selecting puzzle:", num);
+  async function selectPuzzle(num) {
+    console.log("Puzzle clicked:", num);
     const pid = num === 71 ? 1 : 2;
     const puzzles = await sbGet('puzzles', `?id=eq.${pid}&limit=1`);
-    if(!puzzles || !puzzles[0]){ window.toast('Ошибка загрузки пазла'); return; }
-    window.activePuzzle = puzzles[0];
+    if(!puzzles || !puzzles[0]){ toast('Ошибка загрузки пазла'); return; }
+    activePuzzle = puzzles[0];
     
     document.getElementById('mainTitle').textContent = `Puzzle #${num}`;
     document.getElementById('mainAlgo').textContent = num === 71 ? 'Алгоритм: Brute Force' : 'Алгоритм: Pollard\'s Kangaroo';
     
-    window.showScreen('screenMain');
+    showScreen('screenMain');
     await getNewSubsector();
-  };
+  }
 
   async function getNewSubsector(sectorIndex=null){
-    if(!window.activePuzzle || !window.tgUser) return;
+    if(!activePuzzle || !tgUser) return;
     const result = await sbRpc('get_next_subsector',{
-      p_puzzle_id: parseInt(window.activePuzzle.id),
-      p_user_id: parseInt(window.tgUser.id),
+      p_puzzle_id: parseInt(activePuzzle.id),
+      p_user_id: parseInt(tgUser.id),
       p_sector_index: sectorIndex
     });
     if(!result || result.error || !result.subsector_id){
-      window.toast('Нет доступных подсекторов'); return;
+      toast('Нет доступных подсекторов'); return;
     }
-    window.currentSubsector = result;
-    updateSubsectorUI();
+    currentSubsector = result;
+    console.log("Subsector loaded:", result.subsector_id);
   }
 
-  function updateSubsectorUI(){
-    if(!window.currentSubsector) return;
-    const {sector_index:si, subsector_index:ssi, range_lo, range_hi} = window.currentSubsector;
-    // Update UI elements... (simplified for brevity)
-    console.log("Subsector updated:", si, ssi);
-  }
-
-  // INIT
   async function init(){
-    if(window.Telegram?.WebApp){
+    console.log("Initializing app...");
+    if(window.Telegram && window.Telegram.WebApp){
       window.Telegram.WebApp.ready();
-      window.tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+      tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
     }
-    if(!window.tgUser) window.tgUser = {id:12345, username:'test', first_name:'Test'};
+    if(!tgUser) tgUser = {id:12345, username:'test', first_name:'Test'};
     
     try {
-      await sbPost('users', {id: window.tgUser.id, username: window.tgUser.username, first_name: window.tgUser.first_name});
+      await sbPost('users', {id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name});
     } catch(e){}
     
-    console.log("App initialized");
+    await loadDependencies();
+    console.log("App ready");
   }
 
-  init();
-  // Ручная привязка для надежности
-  document.addEventListener('DOMContentLoaded', () => {
-    const card71 = document.querySelector('.puzzle-card.p71');
-    const card135 = document.querySelector('.puzzle-card.p135');
-    if(card71) card71.onclick = () => window.selectPuzzle(71);
-    if(card135) card135.onclick = () => window.selectPuzzle(135);
-    console.log("Event listeners manually attached.");
-  });
-
-  // Экспортируем функции в глобальную область видимости
-  window.selectPuzzle = selectPuzzle;
-  window.showScreen = showScreen;
-  window.switchTab = switchTab;
-  window.saveWallet = saveWallet;
-  window.startSearch = startSearch;
-  window.stopSearch = stopSearch;
-  window.claimSector = claimSector;
-  
-  console.log("Global functions bound to window object.");
-
+  window.onload = init;
 </script>
 </body>
 </html>
