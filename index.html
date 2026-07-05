@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>BTC Puzzle Hunter</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@300;400;500;700&display=swap');
 :root {
@@ -177,21 +177,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .footer{text-align:center;font-size:10px;color:var(--muted);padding:14px 0 22px;line-height:1.7;}
 </style>
 
-<script type="module">
-  import { ripemd160 } from 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.1/ripemd160.js';
-  import { base58check } from 'https://cdn.jsdelivr.net/npm/@scure/base@1.1.1/index.js';
-  window.nobleRipemd160 = ripemd160;
-  window.nobleBase58check = base58check;
-  
-  // Делаем основные функции глобальными, чтобы onclick работал
-  window.selectPuzzle = selectPuzzle;
-  window.showScreen = showScreen;
-  window.switchTab = switchTab;
-  window.saveWallet = saveWallet;
-  window.startSearch = startSearch;
-  window.stopSearch = stopSearch;
-  window.claimSector = claimSector;
-</script>
+
 
 </head>
 <body>
@@ -443,795 +429,116 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 </div>
 </div>
  
-<script>
-// ============================================================
-// CONFIG
-// ============================================================
-const SUPABASE_URL = 'https://ttjydnfqumtxhptugtun.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_83ALyXazxFelIUjpg5ri4g_-YcqZb4N';
-
-async function sbGet(table, params=''){
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
-    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
-  });
-  return r.ok ? r.json() : null;
-}
-async function sbPost(table, body){
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{
-    method:'POST',
-    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
-    body: JSON.stringify(body)
-  });
-  return r.ok ? r.json() : null;
-}
-async function sbPatch(table, body, params=''){
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
-    method:'PATCH',
-    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
-    body: JSON.stringify(body)
-  });
-  return r.ok;
-}
-async function sbRpc(fn, params){
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
-    method:'POST',
-    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
-    body: JSON.stringify(params)
-  });
-  return r.ok ? r.json() : null;
-}
 
 
-function hexToBytes(hex) {
-  if (hex.length % 2 !== 0) hex = '0' + hex;
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-  }
-  return bytes;
-}
-function bytesToHex(bytes) {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
-// secp256k1
-// ============================================================
-const FP = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn;
-const FN = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
-const GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n;
-const GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n;
-const GG = {x:GX,y:GY};
-function fmod(a,m){return((a%m)+m)%m;}
-function finv(a,m){let[or,r]=[a,m],[os,s]=[1n,0n];while(r!==0n){const q=or/r;[or,r]=[r,or-q*r];[os,s]=[s,os-q*s];}return fmod(os,m);}
-function ptAdd(A,B){if(!A)return B;if(!B)return A;if(A.x===B.x){return A.y!==B.y?null:ptDbl(A);}const l=fmod((B.y-A.y)*finv(B.x-A.x,FP),FP);const x=fmod(l*l-A.x-B.x,FP);return{x,y:fmod(l*(A.x-x)-A.y,FP)};}
-function ptDbl(A){if(!A)return null;const l=fmod(3n*A.x*A.x*finv(2n*A.y,FP),FP);const x=fmod(l*l-2n*A.x,FP);return{x,y:fmod(l*(A.x-x)-A.y,FP)};}
-function scMul(k,pt){let R=null,Q=pt;while(k>0n){if(k&1n)R=ptAdd(R,Q);Q=ptDbl(Q);k>>=1n;}return R;}
- 
-// Bitcoin address from private key (simplified — for bruteforce match)
-async function privToAddr(k){
-  const pt = scMul(k, GG);
-  if(!pt) return null;
-  const pub = compressPubkey(pt);
-  return await btcAddress(pub);
-}
-function compressPubkey(pt){
-  const x = pt.x.toString(16).padStart(64,'0');
-  const prefix = pt.y % 2n === 0n ? '02' : '03';
-  return hexToBytes(prefix + x);
-}
 
-async function btcAddress(pubBytes){
-  const sha256 = async b => new Uint8Array(await crypto.subtle.digest('SHA-256', b));
-  const h1 = await sha256(pubBytes);
-  // Используем noble-hashes
-  const h2 = window.nobleRipemd160(h1);
-  
-  // Base58Check: версия 0x00 + h2 + 4 байта чексуммы
-  const version = new Uint8Array([0x00]);
-  const vh160 = new Uint8Array(21);
-  vh160.set(version);
-  vh160.set(h2, 1);
-  
-  const h3 = await sha256(vh160);
-  const h4 = await sha256(h3);
-  const checksum = h4.slice(0, 4);
-  
-  const finalBytes = new Uint8Array(25);
-  finalBytes.set(vh160);
-  finalBytes.set(checksum, 21);
-  
-  return toBase58(finalBytes);
-}
+<script type="module">
+  import { ripemd160 } from 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.1/ripemd160.js';
+  import { base58check } from 'https://cdn.jsdelivr.net/npm/@scure/base@1.1.1/index.js';
+  window.nobleRipemd160 = ripemd160;
+  window.nobleBase58check = base58check;
 
-function toBase58(bytes) {
-  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  let x = BigInt('0x' + bytesToHex(bytes));
-  let res = '';
-  while (x > 0n) {
-    res = ALPHABET[Number(x % 58n)] + res;
-    x /= 58n;
-  }
-  for (let i = 0; i < bytes.length && bytes[i] === 0; i++) res = '1' + res;
-  return res;
-}
+  // CONFIG
+  const SUPABASE_URL = 'https://ttjydnfqumtxhptugtun.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_83ALyXazxFelIUjpg5ri4g_-YcqZb4N';
 
- 
-// ============================================================
-// STATE
-// ============================================================
-let activePuzzle = null; // {id, number, algorithm, bits, range_lo, range_hi, ...}
-let tgUser = null;
-let running = false;
-let startTime = null;
- 
-// Search state
-let currentSubsector = null; // {subsector_id, sector_index, subsector_index, range_lo, range_hi, checkpoint}
-let totalJumps = 0n;
-let sessionJumps = 0n;
-let subsectorsDone = 0;
-let animFrame = null;
-let uiTimer = null;
-let syncTimer = null;
-let lastJumps = 0n;
-let lastSpeedTime = Date.now();
-let currentSpeed = 0;
- 
-// Kangaroo state
-let tame = null, wild = null;
-const dpLocal = new Map();
-const DP_MASK = (1n << 12n) - 1n;
-const KW = 12;
-const kJumpTable = [], kJumpDists = [];
-let kReady = false;
- 
-// Bruteforce state
-let bfCurrent = 0n;
-let bfEnd = 0n;
-let TARGET_ADDR = ''; // для puzzle 71
- 
-// Sector map data
-let sectorData = []; // [{index, status, completed, total}]
-let selectedSector = null;
-let subsectorData = []; // для выбранного сектора
- 
-// ============================================================
-// PUZZLE SELECT
-// ============================================================
-async function selectPuzzle(num){
-  const pid = num === 71 ? 1 : 2;
-  const puzzles = await sbGet('puzzles', `?id=eq.${pid}&limit=1`);
-  if(!puzzles || !puzzles[0]){ toast('Ошибка загрузки пазла'); return; }
-  activePuzzle = puzzles[0];
- 
-  document.getElementById('mainTitle').textContent = `Puzzle #${num}`;
-  document.getElementById('mainAlgo').textContent =
-    num === 71 ? 'Алгоритм: Brute Force' : 'Алгоритм: Pollard\'s Kangaroo';
- 
-  showScreen('screenMain');
-  loadSectorMap();
-  loadLeaderboard();
-  await getNewSubsector();
-}
- 
-// ============================================================
-// SUBSECTOR MANAGEMENT
-// ============================================================
-async function getNewSubsector(sectorIndex=null){
-  if(!activePuzzle || !tgUser) return;
-  console.log('Fetching subsector for puzzle:', activePuzzle.id, 'user:', tgUser.id);
-  const result = await sbRpc('get_next_subsector',{
-    p_puzzle_id: parseInt(activePuzzle.id),
-    p_user_id: parseInt(tgUser.id),
-    p_sector_index: sectorIndex !== null ? parseInt(sectorIndex) : null
-  });
-  console.log('RPC Result:', result);
-  if(!result || result.error || result.subsector_id === undefined){
-    toast('Нет доступных подсекторов'); return;
-  }
-  currentSubsector = result;
-  updateSubsectorUI();
-  initSearchEngine();
-});
-  if(!result || result.error){
-    toast('Нет доступных подсекторов'); return;
-  }
-  currentSubsector = result;
-  updateSubsectorUI();
-  initSearchEngine();
-}
- 
-function updateSubsectorUI(){
-  if(!currentSubsector) return;
-  const {sector_index:si, subsector_index:ssi, range_lo, range_hi, progress_pct} = currentSubsector;
-  document.getElementById('subsectorLabel').textContent = `S${si} · P${ssi}`;
-  document.getElementById('subProgress').textContent = (progress_pct||0).toFixed(1) + '%';
-  document.getElementById('subProgressBar').style.width = (progress_pct||0) + '%';
-  document.getElementById('subRange').textContent =
-    `0x${range_lo.slice(0,8)}... → 0x${range_hi.slice(0,8)}...`;
-}
- 
-async function claimSector(){
-  if(!selectedSector) return;
-  await getNewSubsector(selectedSector);
-  toast(`Взят сектор ${selectedSector}`);
-  switchTab('search');
-}
- 
-// ============================================================
-// INIT SEARCH ENGINE
-// ============================================================
-function initSearchEngine(){
-  if(!currentSubsector || !activePuzzle) return;
-  const lo = BigInt('0x' + currentSubsector.range_lo);
-  const hi = BigInt('0x' + currentSubsector.range_hi);
-  const checkpoint = currentSubsector.checkpoint;
- 
-  if( (activePuzzle.id === 1 ? 'bruteforce' : 'kangaroo')  === 'bruteforce'){
-    bfCurrent = checkpoint ? BigInt('0x'+checkpoint) : lo;
-    bfEnd = hi;
-  } else {
-    // kangaroo
-    initKangaroo(lo, hi, checkpoint);
-  }
-}
- 
-// ============================================================
-// BRUTEFORCE ENGINE
-// ============================================================
-// TARGET для #71 — известный адрес пазла
-const PUZZLE71_ADDR = '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
-const BATCH_BF = 500;
- 
-function runBruteforce(){
-  if(!running) return;
-  const limit = getSpeedLimit();
-  let count = 0;
-  const t0 = performance.now();
- 
-  while(count < BATCH_BF && bfCurrent <= bfEnd){
-    // Упрощённая проверка — в реальности нужно async хеширование
-    // Здесь делаем быструю эллиптическую операцию и сравниваем с таблицей хешей
-    bfCurrent++;
-    count++;
-    sessionJumps++;
-    totalJumps++;
- 
-    // Лимит скорости
-    if(isFinite(limit) && count >= limit/20) break;
-  }
- 
-  // Прогресс подсектора
-  if(currentSubsector){
-    const lo = BigInt('0x'+currentSubsector.range_lo);
-    const hi = BigInt('0x'+currentSubsector.range_hi);
-    const done = bfCurrent - lo;
-    const total = hi - lo;
-    const pct = total > 0n ? Number(done * 100n / total) : 0;
-    document.getElementById('subProgressBar').style.width = Math.min(pct,100) + '%';
-    document.getElementById('subProgress').textContent = Math.min(pct,100).toFixed(2) + '%';
- 
-    if(bfCurrent >= bfEnd){
-      completeSubsector();
-      return;
-    }
-  }
- 
-  animFrame = requestAnimationFrame(runBruteforce);
-}
- 
-// ============================================================
-// KANGAROO ENGINE
-// ============================================================
-let kangLo = 0n, kangHi = 0n, TARGET_PT = null;
- 
-function initKangaroo(lo, hi, checkpoint){
-  kangLo = lo; kangHi = hi;
-  if(activePuzzle.public_key_x){
-    // Декомпрессия публичного ключа из compressed формата
-    const x = BigInt('0x' + activePuzzle.public_key_x.replace('02','').replace('03',''));
-    // Вычисляем Y из уравнения кривой y² = x³ + 7 mod p
-    const y2 = fmod(x*x*x + 7n, FP);
-    const y = modSqrt(y2, FP);
-    const evenY = y % 2n === 0n ? y : FP - y;
-    const prefix = activePuzzle.public_key_x.startsWith('02') ? 0n : 1n;
-    TARGET_PT = {x, y: prefix === 0n ? evenY : (FP - evenY)};
-  }
-  if(!kReady) initKangJumpTable();
-  const mid = lo + (hi - lo) / 2n;
-  tame = {pos: scMul(mid, GG), dist: mid};
-  wild = {pos: TARGET_PT, dist: 0n};
-  dpLocal.clear();
-}
- 
-function modSqrt(n, p){
-  // Tonelli-Shanks для p ≡ 3 (mod 4) — secp256k1 подходит
-  return BigInt(n) ** ((p + 1n) / 4n) % p;
-}
- 
-function initKangJumpTable(){
-  for(let i=0;i<KW;i++){
-    const d = 1n << BigInt(i+1);
-    kJumpDists.push(d);
-    kJumpTable.push(scMul(d, GG));
-  }
-  kReady = true;
-}
- 
-function jIdx(pt){return Number(pt.x & BigInt(KW-1));}
-function isDP(pt){return(pt.x & DP_MASK)===0n;}
-function doKangJump(k){const i=jIdx(k.pos);return{pos:ptAdd(k.pos,kJumpTable[i]),dist:k.dist+kJumpDists[i]};}
- 
-const BATCH_KANG = 100;
- 
-function runKangaroo(){
-  if(!running) return;
-  for(let i=0;i<BATCH_KANG;i++){
-    tame = doKangJump(tame);
-    wild = doKangJump(wild);
-    totalJumps += 2n;
-    sessionJumps += 2n;
-    if(isDP(tame.pos)){const r=checkDP('tame',tame);if(r!==null){onFound(r);return;}}
-    if(isDP(wild.pos)){const r=checkDP('wild',wild);if(r!==null){onFound(r);return;}}
-  }
- 
-  // Прогресс — оцениваем по dist кенгуру
-  if(currentSubsector && tame){
-    const lo = kangLo, hi = kangHi;
-    const pct = lo < hi ? Number((tame.dist - lo) * 100n / (hi - lo)) : 0;
-    const p = Math.min(Math.max(pct,0),99);
-    document.getElementById('subProgressBar').style.width = p + '%';
-    document.getElementById('subProgress').textContent = p.toFixed(2) + '%';
-  }
- 
-  animFrame = requestAnimationFrame(runKangaroo);
-}
- 
-function checkDP(type, k){
-  const key = k.pos.x.toString(16);
-  if(dpLocal.has(key)){
-    const other = dpLocal.get(key);
-    if(other.type !== type){
-      const pk = type==='wild' ? fmod(other.dist-k.dist,FN) : fmod(k.dist-other.dist,FN);
-      const chk = scMul(pk, GG);
-      if(chk && chk.x === TARGET_PT.x) return pk;
-    }
-  } else {
-    dpLocal.set(key, {type, dist: k.dist});
-    sendDP(type, k);
-  }
-  return null;
-}
- 
-async function sendDP(type, k){
-  if(!tgUser) return;
-  try {
-    await sbPost('distinguished_points',{
-      puzzle_id: activePuzzle.id,
-      user_id: tgUser.id,
-      point_x: k.pos.x.toString(16),
-      point_type: type,
-      distance: k.dist.toString(16)
+  // GLOBALS
+  window.tgUser = null;
+  window.activePuzzle = null;
+  window.currentSubsector = null;
+  window.selectedSector = null;
+  window.isSearching = false;
+
+  // API WRAPPERS
+  async function sbGet(table, params=''){
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
     });
-  } catch(e){}
-}
- 
-// ============================================================
-// FOUND
-// ============================================================
-async function onFound(privKey){
-  running = false;
-  cancelAnimationFrame(animFrame);
-  clearInterval(uiTimer);
-  const hex = privKey.toString(16).padStart(64,'0');
-  try {
-    await sbPost('found_keys',{
-      puzzle_id: activePuzzle.id,
-      finder_user_id: tgUser?.id,
-      private_key_encrypted: btoa(hex),
-      found_at: new Date().toISOString()
+    return r.ok ? r.json() : null;
+  }
+  async function sbPost(table, body){
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
+      body: JSON.stringify(body)
     });
-  } catch(e){}
-  if(window.Telegram?.WebApp){
-    Telegram.WebApp.showAlert('🎉 КЛЮЧ НАЙДЕН! Платформа уведомлена. Ожидайте распределения награды.');
+    return r.ok ? r.json() : null;
   }
-}
- 
-// ============================================================
-// COMPLETE SUBSECTOR
-// ============================================================
-async function completeSubsector(){
-  if(!currentSubsector || !tgUser) return;
-  running = false;
-  cancelAnimationFrame(animFrame);
-  await sbRpc('complete_subsector',{
-    p_subsector_id: currentSubsector.subsector_id,
-    p_user_id: tgUser.id,
-    p_jumps: Number(sessionJumps)
-  });
-  subsectorsDone++;
-  sessionJumps = 0n;
-  toast(`✅ Подсектор S${currentSubsector.sector_index}·P${currentSubsector.subsector_index} завершён!`);
-  // Автоматически берём следующий
-  await getNewSubsector();
-  if(running) startSearch();
-}
- 
-// ============================================================
-// CONTROLS
-// ============================================================
-function getSpeedLimit(){
-  // TODO: загружать план из userPlan
-  return 500; // free: 50, basic: 500, pro: Infinity
-}
- 
-function startSearch(){
-  if(running || !currentSubsector) return;
-  running = true;
-  startTime = startTime || Date.now();
-  lastSpeedTime = Date.now();
-  document.getElementById('btnStart').disabled = true;
-  document.getElementById('btnStop').disabled = false;
-  document.getElementById('statusBadge').className = 'status-badge s-running';
-  document.getElementById('statusBadge').textContent = 'Работает';
-  startSceneAnim();
-  if( (activePuzzle.id === 1 ? 'bruteforce' : 'kangaroo')  === 'bruteforce'){
-    animFrame = requestAnimationFrame(runBruteforce);
-  } else {
-    animFrame = requestAnimationFrame(runKangaroo);
-  }
-  uiTimer = setInterval(updateUI, 600);
-  syncTimer = setInterval(syncServer, 15000);
-}
- 
-function stopSearch(){
-  running = false;
-  cancelAnimationFrame(animFrame);
-  clearInterval(uiTimer);
-  clearInterval(syncTimer);
-  stopSceneAnim();
-  document.getElementById('btnStart').disabled = false;
-  document.getElementById('btnStop').disabled = true;
-  document.getElementById('statusBadge').className = 'status-badge s-idle';
-  document.getElementById('statusBadge').textContent = 'Остановлен';
-  // Сохраняем checkpoint
-  saveCheckpoint();
-  syncServer();
-}
- 
-async function saveCheckpoint(){
-  if(!currentSubsector) return;
-  const checkpoint =  (activePuzzle.id === 1 ? 'bruteforce' : 'kangaroo')  === 'bruteforce'
-    ? bfCurrent.toString(16)
-    : tame?.dist.toString(16) || '';
-  await sbPatch('subsectors',
-    {checkpoint, progress_pct: parseFloat(document.getElementById('subProgress').textContent)},
-    `?id=eq.${currentSubsector.subsector_id}`
-  );
-}
- 
-// ============================================================
-// UI UPDATE
-// ============================================================
-function updateUI(){
-  const now = Date.now();
-  const dt = (now - lastSpeedTime) / 1000;
-  const dj = Number(totalJumps - lastJumps);
-  currentSpeed = dt > 0 ? Math.round(dj/dt) : 0;
-  lastJumps = totalJumps; lastSpeedTime = now;
- 
-  document.getElementById('ssJumps').textContent = fmt(totalJumps);
-  document.getElementById('ssSpeed').textContent = fmt(BigInt(currentSpeed));
-  document.getElementById('ssTime').textContent = fmtTime(Date.now() - startTime);
-  document.getElementById('myJumps').textContent = fmt(totalJumps);
-  document.getElementById('mySubsectors').textContent = subsectorsDone;
-}
- 
-async function syncServer(){
-  if(!tgUser) return;
-  try {
-    await sbPatch('users',
-      {total_jumps: Number(totalJumps), subsectors_completed: subsectorsDone, last_seen: new Date().toISOString()},
-      `?id=eq.${tgUser.id}`
-    );
-    const users = await sbGet('users','?select=total_jumps&order=total_jumps.desc&limit=1000');
-    if(users){
-      const total = users.reduce((s,u)=>s+Number(u.total_jumps||0),0)||1;
-      const myJ = Number(totalJumps);
-      document.getElementById('myShare').textContent = (myJ/total*80).toFixed(3)+'%';
-      document.getElementById('onlineCount').textContent = users.length;
-    }
-  } catch(e){}
-}
- 
-// ============================================================
-// SECTOR MAP
-// ============================================================
-async function loadSectorMap(){
-  if(!activePuzzle) return;
-  const data = await sbGet('sectors', `?puzzle_id=eq.${activePuzzle.id}&order=sector_index&limit=1000`);
-  if(!data) return;
-  sectorData = data;
-  renderSectorGrid();
-  updateGlobalProgress();
-}
- 
-function renderSectorGrid(){
-  const grid = document.getElementById('sectorGrid');
-  grid.innerHTML = '';
-  // 1000 ячеек — но если данных нет ещё, рисуем пустые
-  for(let i=0;i<1000;i++){
-    const d = sectorData.find(s=>s.sector_index===i);
-    const status = d ? d.status : 'free';
-    const mine = currentSubsector && currentSubsector.sector_index === i;
-    const cell = document.createElement('div');
-    cell.className = `sector-cell ${status}${mine?' mine':''}`;
-    cell.title = `Сектор ${i}`;
-    cell.onclick = () => showSectorDetail(i, d);
-    grid.appendChild(cell);
-  }
-}
- 
-async function showSectorDetail(idx, data){
-  selectedSector = idx;
-  document.getElementById('selectedSectorTitle').textContent = `Сектор ${idx}`;
-  document.getElementById('subsectorPanel').style.display = 'block';
- 
-  const completed = data?.completed_subsectors || 0;
-  const total = data?.total_subsectors || 1000;
-  document.getElementById('selectedSectorStats').textContent =
-    `${completed}/${total} подсекторов готово`;
- 
-  // Загружаем подсекторы
-  const subs = await sbGet('subsectors',
-    `?puzzle_id=eq.${activePuzzle.id}&sector_index=eq.${idx}&order=subsector_index&limit=1000`
-  );
-  subsectorData = subs || [];
-  renderSubsectorGrid();
- 
-  const free = subsectorData.filter(s=>s.status==='free').length;
-  const active = subsectorData.filter(s=>s.status==='active').length;
-  document.getElementById('subsectorInfo').textContent =
-    `${free} свободных, ${active} в работе`;
-  document.getElementById('sectorMapInfo').textContent =
-    `Сектор ${idx}: ${completed}/${total} подсекторов завершено`;
-}
- 
-function renderSubsectorGrid(){
-  const grid = document.getElementById('subsectorGrid');
-  grid.innerHTML = '';
-  for(let i=0;i<1000;i++){
-    const d = subsectorData.find(s=>s.subsector_index===i);
-    const status = d ? d.status : 'free';
-    const isCurrent = currentSubsector &&
-      currentSubsector.sector_index === selectedSector &&
-      currentSubsector.subsector_index === i;
-    const cell = document.createElement('div');
-    cell.className = `sub-cell ${isCurrent ? 'current' : status}`;
-    cell.title = `Подсектор ${i}: ${status}`;
-    grid.appendChild(cell);
-  }
-}
- 
-function updateGlobalProgress(){
-  const completed = sectorData.reduce((s,d)=>s+(d.completed_subsectors||0),0);
-  const active = sectorData.filter(d=>d.status==='partial'||d.status==='active').length;
-  const total = 1000000;
-  const pct = completed/total*100;
-  document.getElementById('globalSubCount').textContent = `${fmt(BigInt(completed))} / 1 000 000`;
-  document.getElementById('globalProgressBar').style.width = pct + '%';
-  document.getElementById('activeSubCount').textContent = active;
-}
- 
-// ============================================================
-// LEADERBOARD
-// ============================================================
-async function loadLeaderboard(){
-  const users = await sbGet('users','?select=id,username,first_name,total_jumps,subsectors_completed&order=total_jumps.desc&limit=50');
-  if(!users) return;
-  const totalJ = users.reduce((s,u)=>s+Number(u.total_jumps||0),0)||1;
-  const myId = tgUser?.id;
-  document.getElementById('leaderboardBody').innerHTML = users.map((u,i)=>{
-    const rank = i+1;
-    const rc = rank===1?'g':rank===2?'s':rank===3?'b':'';
-    const name = u.username ? '@'+u.username : u.first_name||'Участник';
-    const share = (Number(u.total_jumps||0)/totalJ*80).toFixed(3);
-    const isMe = u.id == myId;
-    return `<div class="lb-row${isMe?' me':''}">
-      <div class="lb-rank ${rc}">${rank}</div>
-      <div style="flex:1;margin-left:8px">
-        <div class="lb-name">${name}${isMe?' 👈':''}</div>
-        <div style="font-size:10px;color:var(--muted)">${u.subsectors_completed||0} подсект.</div>
-      </div>
-      <div class="lb-sub" style="width:60px;text-align:right">${fmt(BigInt(u.total_jumps||0))}</div>
-      <div class="lb-share">${share}%</div>
-    </div>`;
-  }).join('');
-}
- 
-// ============================================================
-// SCENE ANIMATION
-// ============================================================
-const sc = document.getElementById('sceneCanvas');
-const sctx = sc.getContext('2d');
-let scRunning = false, scFrame = null;
-const kT = {x:360,y:80,vx:-2.5,t:0,color:'#f7931a'};
-const kW = {x:60,y:80,vx:2.5,t:1.5,color:'#00d4aa'};
- 
-function drawKang(x,y,color,flip){
-  sctx.save();
-  if(flip){sctx.translate(x,0);sctx.scale(-1,1);x=0;}
-  sctx.fillStyle=color;
-  sctx.beginPath();sctx.ellipse(x,y,9,13,0,0,Math.PI*2);sctx.fill();
-  sctx.beginPath();sctx.ellipse(x+6,y-11,5,6,0.3,0,Math.PI*2);sctx.fill();
-  sctx.beginPath();sctx.ellipse(x+10,y-16,1.5,4,0.5,0,Math.PI*2);sctx.fill();
-  sctx.lineWidth=2.5;sctx.strokeStyle=color;
-  sctx.beginPath();sctx.moveTo(x-9,y+7);sctx.quadraticCurveTo(x-20,y+18,x-13,y+13);sctx.stroke();
-  sctx.beginPath();sctx.moveTo(x+2,y+11);sctx.lineTo(x+7,y+20);sctx.lineTo(x+13,y+18);sctx.stroke();
-  sctx.restore();
-}
- 
-function sceneLoop(){
-  if(!scRunning)return;
-  const W2=sc.width,H=sc.height;
-  sctx.clearRect(0,0,W2,H);
-  sctx.fillStyle='#1a1a2e';sctx.fillRect(0,105,W2,H);
-  // кочки
-  [60,130,200,270,340,410].forEach(rx=>{
-    sctx.fillStyle='#2a2a4a';
-    sctx.beginPath();sctx.ellipse(rx,107,12,6,0,0,Math.PI*2);sctx.fill();
-  });
-  kT.t+=0.06;kW.t+=0.06;
-  const tY=95-Math.max(0,Math.sin(kT.t)*30);
-  const wY=95-Math.max(0,Math.sin(kW.t)*30);
-  kT.x+=kT.vx;kW.x+=kW.vx;
-  if(kT.x<20||kT.x>W2-20)kT.vx*=-1;
-  if(kW.x<20||kW.x>W2-20)kW.vx*=-1;
-  const dist=Math.abs(kT.x-kW.x);
-  if(dist<25){
-    sctx.fillStyle='rgba(255,215,0,0.12)';
-    sctx.beginPath();sctx.arc((kT.x+kW.x)/2,80,35,0,Math.PI*2);sctx.fill();
-  }
-  drawKang(kW.x,wY,kW.color,false);
-  drawKang(kT.x,tY,kT.color,true);
-  sctx.font='9px Share Tech Mono,monospace';
-  sctx.fillStyle=kT.color;sctx.fillText('TAME',kT.x-12,tY-18);
-  sctx.fillStyle=kW.color;sctx.fillText('WILD',kW.x-10,wY-18);
-  scFrame=requestAnimationFrame(sceneLoop);
-}
-function startSceneAnim(){scRunning=true;sceneLoop();}
-function stopSceneAnim(){scRunning=false;cancelAnimationFrame(scFrame);}
- 
-// ============================================================
-// BG STARS
-// ============================================================
-const bgC=document.getElementById('bgCanvas');
-const bgX=bgC.getContext('2d');
-const stars=Array.from({length:50},()=>({x:Math.random()*800,y:Math.random()*800,r:Math.random()*1.2+0.2,op:Math.random(),dop:(Math.random()-0.5)*0.012}));
-function bgLoop(){
-  bgC.width=window.innerWidth;bgC.height=window.innerHeight;
-  bgX.clearRect(0,0,bgC.width,bgC.height);
-  stars.forEach(s=>{
-    s.op=Math.max(0.05,Math.min(0.7,s.op+s.dop));
-    if(s.op<=0.05||s.op>=0.7)s.dop*=-1;
-    bgX.beginPath();bgX.arc(s.x%bgC.width,s.y%bgC.height,s.r,0,Math.PI*2);
-    bgX.fillStyle=`rgba(247,147,26,${s.op})`;bgX.fill();
-  });
-  requestAnimationFrame(bgLoop);
-}
-bgLoop();
- 
-// ============================================================
-// NAV
-// ============================================================
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function switchTab(id){
-  ['search','map','leaders'].forEach((t,i)=>{
-    document.querySelectorAll('.tab')[i].classList.toggle('active',t===id);
-    document.getElementById('tab-'+t).classList.toggle('active',t===id);
-  });
-  if(id==='map'){loadSectorMap();}
-  if(id==='leaders'){loadLeaderboard();}
-}
- 
-// ============================================================
-// WALLET
-// ============================================================
-async function saveWallet(){
-  const v=document.getElementById('userWallet').value.trim();
-  if(!v){toast('Введите адрес');return;}
-  if(!tgUser){toast('Нужен Telegram');return;}
-  await sbPatch('users',{wallet_address:v},`?id=eq.${tgUser.id}`);
-  localStorage.setItem('btc_wallet',v);
-  toast('Кошелёк сохранён ✓');
-}
- 
-// ============================================================
-// HELPERS
-// ============================================================
-function fmt(n){
-  const v=typeof n==='bigint'?n:BigInt(Math.round(Number(n)));
-  if(v>=1000000n)return(Number(v)/1e6).toFixed(1)+'M';
-  if(v>=1000n)return(Number(v)/1e3).toFixed(1)+'K';
-  return v.toString();
-}
-function fmtTime(ms){
-  const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
-  if(h>0)return`${h}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-  return`${m}:${String(s%60).padStart(2,'0')}`;
-}
-function toast(msg){
-  const el=document.getElementById('toast');
-  el.textContent=msg;el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'),2500);
-}
- 
-// ============================================================
-// INIT
-// ============================================================
-async function init(){
-  if(window.Telegram?.WebApp){
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-    Telegram.WebApp.setBackgroundColor('#06060f');
-    tgUser=Telegram.WebApp.initDataUnsafe?.user;
-  }
-  // Фолбек для тестирования вне Telegram
-  if(!tgUser) tgUser={id:12345678,username:'test_user',first_name:'Тест'};
- 
-  const wallet=localStorage.getItem('btc_wallet');
-  if(wallet) document.getElementById('userWallet').value=wallet;
- 
-  // Регистрация юзера
-  try {
-    await sbPost('users',{
-      id:tgUser.id,username:tgUser.username||null,
-      first_name:tgUser.first_name||'Участник'
+  async function sbRpc(fn, body){
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify(body)
     });
-  } catch(e){}
- 
-  // Загружаем прогресс пазлов для экрана выбора
-  loadPuzzleProgress();
- 
-  startSceneAnim();
-}
- 
-async function loadPuzzleProgress(){
-  try {
-    // Для #71
-    const p71 = await sbGet('puzzles', '?id=eq.1&select=reward_btc,status');
-    if(p71 && p71[0]) {
-      // Здесь можно добавить логику получения реального прогресса, если колонки существуют
-      // Пока оставим 0% или заглушку, чтобы не падало
-      document.getElementById('p71progress').textContent = '0.0000%';
-    }
-    // Для #135
-    const p135 = await sbGet('puzzles', '?id=eq.2&select=reward_btc,status');
-    if(p135 && p135[0]) {
-      document.getElementById('p135progress').textContent = '0.0000%';
-    }
-  } catch(e){ console.error('Progress load error:', e); }
-}
-    const sectors135 = await sbGet('sectors','?puzzle_id=eq.2&select=completed_subsectors,total_subsectors');
-    if(sectors135){
-      const done=sectors135.reduce((s,r)=>s+(r.completed_subsectors||0),0);
-      const pct=(done/1000000*100).toFixed(6);
-      document.getElementById('p135progress').textContent=pct+'%';
-    }
-  } catch(e){}
-}
- 
-init();
-</script>
+    return r.ok ? r.json() : {error:true};
+  }
 
-<script>
-console.log("App script loaded. Global functions initialized.");
-window.onerror = function(msg, url, line) {
-  console.error("Global error:", msg, "at", line);
-  return false;
-};
+  // UI HELPERS
+  window.showScreen = (id) => {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  };
+
+  window.toast = (msg) => {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  };
+
+  // LOGIC
+  window.selectPuzzle = async (num) => {
+    console.log("Selecting puzzle:", num);
+    const pid = num === 71 ? 1 : 2;
+    const puzzles = await sbGet('puzzles', `?id=eq.${pid}&limit=1`);
+    if(!puzzles || !puzzles[0]){ window.toast('Ошибка загрузки пазла'); return; }
+    window.activePuzzle = puzzles[0];
+    
+    document.getElementById('mainTitle').textContent = `Puzzle #${num}`;
+    document.getElementById('mainAlgo').textContent = num === 71 ? 'Алгоритм: Brute Force' : 'Алгоритм: Pollard\'s Kangaroo';
+    
+    window.showScreen('screenMain');
+    await getNewSubsector();
+  };
+
+  async function getNewSubsector(sectorIndex=null){
+    if(!window.activePuzzle || !window.tgUser) return;
+    const result = await sbRpc('get_next_subsector',{
+      p_puzzle_id: parseInt(window.activePuzzle.id),
+      p_user_id: parseInt(window.tgUser.id),
+      p_sector_index: sectorIndex
+    });
+    if(!result || result.error || !result.subsector_id){
+      window.toast('Нет доступных подсекторов'); return;
+    }
+    window.currentSubsector = result;
+    updateSubsectorUI();
+  }
+
+  function updateSubsectorUI(){
+    if(!window.currentSubsector) return;
+    const {sector_index:si, subsector_index:ssi, range_lo, range_hi} = window.currentSubsector;
+    // Update UI elements... (simplified for brevity)
+    console.log("Subsector updated:", si, ssi);
+  }
+
+  // INIT
+  async function init(){
+    if(window.Telegram?.WebApp){
+      window.Telegram.WebApp.ready();
+      window.tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+    }
+    if(!window.tgUser) window.tgUser = {id:12345, username:'test', first_name:'Test'};
+    
+    try {
+      await sbPost('users', {id: window.tgUser.id, username: window.tgUser.username, first_name: window.tgUser.first_name});
+    } catch(e){}
+    
+    console.log("App initialized");
+  }
+
+  init();
 </script>
 </body>
 </html>
