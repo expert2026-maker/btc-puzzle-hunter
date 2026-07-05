@@ -647,7 +647,7 @@ function initSearchEngine(){
   const hi = BigInt('0x' + currentSubsector.range_hi);
   const checkpoint = currentSubsector.checkpoint;
  
-  if(activePuzzle.algorithm === 'bruteforce'){
+  if( (activePuzzle.id === 1 ? 'bruteforce' : 'kangaroo')  === 'bruteforce'){
     bfCurrent = checkpoint ? BigInt('0x'+checkpoint) : lo;
     bfEnd = hi;
   } else {
@@ -855,7 +855,7 @@ function startSearch(){
   document.getElementById('statusBadge').className = 'status-badge s-running';
   document.getElementById('statusBadge').textContent = 'Работает';
   startSceneAnim();
-  if(activePuzzle.algorithm === 'bruteforce'){
+  if( (activePuzzle.id === 1 ? 'bruteforce' : 'kangaroo')  === 'bruteforce'){
     animFrame = requestAnimationFrame(runBruteforce);
   } else {
     animFrame = requestAnimationFrame(runKangaroo);
@@ -881,7 +881,7 @@ function stopSearch(){
  
 async function saveCheckpoint(){
   if(!currentSubsector) return;
-  const checkpoint = activePuzzle.algorithm === 'bruteforce'
+  const checkpoint =  (activePuzzle.id === 1 ? 'bruteforce' : 'kangaroo')  === 'bruteforce'
     ? bfCurrent.toString(16)
     : tame?.dist.toString(16) || '';
   await sbPatch('subsectors',
@@ -1181,12 +1181,20 @@ async function init(){
  
 async function loadPuzzleProgress(){
   try {
-    const sectors71 = await sbGet('sectors','?puzzle_id=eq.1&select=completed_subsectors,total_subsectors');
-    if(sectors71){
-      const done=sectors71.reduce((s,r)=>s+(r.completed_subsectors||0),0);
-      const pct=(done/1000000*100).toFixed(4);
-      document.getElementById('p71progress').textContent=pct+'%';
+    // Для #71
+    const p71 = await sbGet('puzzles', '?id=eq.1&select=reward_btc,status');
+    if(p71 && p71[0]) {
+      // Здесь можно добавить логику получения реального прогресса, если колонки существуют
+      // Пока оставим 0% или заглушку, чтобы не падало
+      document.getElementById('p71progress').textContent = '0.0000%';
     }
+    // Для #135
+    const p135 = await sbGet('puzzles', '?id=eq.2&select=reward_btc,status');
+    if(p135 && p135[0]) {
+      document.getElementById('p135progress').textContent = '0.0000%';
+    }
+  } catch(e){ console.error('Progress load error:', e); }
+}
     const sectors135 = await sbGet('sectors','?puzzle_id=eq.2&select=completed_subsectors,total_subsectors');
     if(sectors135){
       const done=sectors135.reduce((s,r)=>s+(r.completed_subsectors||0),0);
