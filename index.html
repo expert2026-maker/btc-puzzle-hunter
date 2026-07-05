@@ -539,6 +539,17 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   }
 
   init();
+  // Экспортируем функции в глобальную область видимости
+  window.selectPuzzle = selectPuzzle;
+  window.showScreen = showScreen;
+  window.switchTab = switchTab;
+  window.saveWallet = saveWallet;
+  window.startSearch = startSearch;
+  window.stopSearch = stopSearch;
+  window.claimSector = claimSector;
+  
+  console.log("Global functions bound to window object.");
+
 </script>
 </body>
 </html>
