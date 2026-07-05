@@ -482,6 +482,12 @@ async function sbRpc(fn, params){
     body: JSON.stringify(params)
   });
   return r.ok ? r.json() : null;
+}/rest/v1/rpc/${fn}`,{
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+    body: JSON.stringify(params)
+  });
+  return r.ok ? r.json() : null;
 }
  
 // ============================================================
@@ -602,7 +608,7 @@ let subsectorData = []; // для выбранного сектора
 // PUZZLE SELECT
 // ============================================================
 async function selectPuzzle(num){
-  const puzzles = await sbGet('puzzles', `?number=eq.${num}&is_active=eq.true&limit=1`);
+  const puzzles = await sbGet('puzzles', `?number=eq.${num}&status=eq.active&limit=1`);
   if(!puzzles || !puzzles[0]){ toast('Ошибка загрузки пазла'); return; }
   activePuzzle = puzzles[0];
  
