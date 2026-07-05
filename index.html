@@ -539,6 +539,15 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   }
 
   init();
+  // Ручная привязка для надежности
+  document.addEventListener('DOMContentLoaded', () => {
+    const card71 = document.querySelector('.puzzle-card.p71');
+    const card135 = document.querySelector('.puzzle-card.p135');
+    if(card71) card71.onclick = () => window.selectPuzzle(71);
+    if(card135) card135.onclick = () => window.selectPuzzle(135);
+    console.log("Event listeners manually attached.");
+  });
+
   // Экспортируем функции в глобальную область видимости
   window.selectPuzzle = selectPuzzle;
   window.showScreen = showScreen;
