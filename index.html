@@ -6,19 +6,19 @@
 <title>BTC Puzzle Hunter</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@300;400;500;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@300;400;500;700&display=swap");
 :root {
   --bg:#06060f; --surface:#0e0e1c; --card:#131326; --border:#1f1f38;
   --accent:#f7931a; --teal:#00d4aa; --purple:#7c3aed;
   --text:#e2e2f0; --muted:#5a5a7a; --danger:#ff4466; --green:#22c55e;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
+body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-serif;min-height:100vh;overflow-x:hidden;}
 .screen{display:none;min-height:100vh;flex-direction:column;}
 .screen.active{display:flex;}
 .content{padding:16px;max-width:440px;margin:0 auto;flex:1;position:relative;z-index:1;}
 .header{text-align:center;padding:22px 0 14px;}
-.eyebrow{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+.eyebrow{font-family:"Share Tech Mono",monospace;font-size:10px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
 .title{font-size:26px;font-weight:700;letter-spacing:-0.5px;line-height:1.1;}
 .title em{font-style:normal;color:var(--accent);}
 .subtitle{font-size:12px;color:var(--muted);margin-top:5px;}
@@ -31,10 +31,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .pc-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
 .pc-icon{font-size:32px;}
 .pc-title{font-size:18px;font-weight:700;}
-.pc-algo{font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.pc-algo{font-size:11px;color:var(--muted);font-family:"Share Tech Mono",monospace;}
 .pc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
 .pc-stat{background:rgba(0,0,0,0.2);border-radius:8px;padding:8px;text-align:center;}
-.pc-stat-val{font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:600;}
+.pc-stat-val{font-family:"Share Tech Mono",monospace;font-size:14px;font-weight:600;}
 .pc-stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
 .pc-desc{font-size:12px;color:var(--muted);line-height:1.6;}
 .btn{width:100%;padding:14px;border:none;border-radius:11px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;}
@@ -50,7 +50,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .metric-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
 .metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;}
 .metric-label{font-size:9px;color:var(--muted);text-transform:uppercase;}
-.metric-value{font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;}
+.metric-value{font-family:"Share Tech Mono",monospace;font-size:20px;font-weight:700;}
 </style>
 </head>
 <body>
@@ -89,26 +89,49 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
       <button class="btn btn-ghost btn-sm" onclick="showScreen('screenSelect')">← Назад</button>
       <div id="mainTitle" style="font-weight:bold;">Puzzle #71</div>
-      <div class="status-badge" style="margin-left:auto;">Idle</div>
+      <div class="status-badge" style="margin-left:auto;" id="statusBadge">Idle</div>
     </div>
     
     <div class="tabs">
-      <div class="tab active">🔍 Поиск</div>
-      <div class="tab">🗺 Карта</div>
-      <div class="tab">🏆 Топ</div>
+      <div class="tab active" onclick="switchTab('search')" id="tabSearch">🔍 Поиск</div>
+      <div class="tab" onclick="switchTab('map')" id="tabMap">🗺 Карта</div>
+      <div class="tab" onclick="switchTab('leaderboard')" id="tabLeaderboard">🏆 Топ</div>
     </div>
 
-    <div class="metric-row">
-      <div class="metric"><div class="metric-label">Прыжков</div><div class="metric-value">0</div></div>
-      <div class="metric"><div class="metric-label">Сектор</div><div class="metric-value" id="subsectorLabel">--</div></div>
+    <div id="tabContentSearch" class="tab-content active">
+      <div class="metric-row">
+        <div class="metric"><div class="metric-label">Прыжков</div><div class="metric-value" id="jumpsCount">0</div></div>
+        <div class="metric"><div class="metric-label">Сектор</div><div class="metric-value" id="subsectorLabel">--</div></div>
+      </div>
+
+      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px;">
+        <div style="font-size:11px; color:var(--muted); margin-bottom:5px;">Диапазон:</div>
+        <div id="subRange" style="font-family:'Share Tech Mono',monospace; font-size:11px; word-break:break-all;">Загрузка...</div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-row">
+          <div class="progress-label">Прогресс поиска</div>
+          <div class="progress-val" id="searchProgressVal">0%</div>
+        </div>
+        <div class="progress-bg"><div class="progress-fill fill-teal" id="searchProgressBar" style="width:0%;"></div></div>
+      </div>
+
+      <button class="btn btn-primary" id="btnStartSearch" onclick="startSearch()">▶ Запустить поиск</button>
+      <button class="btn btn-stop" id="btnStopSearch" onclick="stopSearch()" style="display:none;">■ Остановить поиск</button>
     </div>
 
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px;">
-      <div style="font-size:11px; color:var(--muted); margin-bottom:5px;">Диапазон:</div>
-      <div id="subRange" style="font-family:'Share Tech Mono',monospace; font-size:11px; word-break:break-all;">Загрузка...</div>
+    <div id="tabContentMap" class="tab-content">
+      <div class="map-wrap">
+        <div class="map-title">Карта секторов</div>
+        <div class="sector-grid" id="sectorGrid"></div>
+      </div>
     </div>
 
-    <button class="btn btn-primary" id="btnStart" onclick="startSearch()">▶ Запустить поиск</button>
+    <div id="tabContentLeaderboard" class="tab-content">
+      <p>Leaderboard content will go here.</p>
+    </div>
+
   </div>
 </div>
 
@@ -119,6 +142,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   let tgUser = {id: 12345, first_name: 'User'};
   let activePuzzle = null;
   let currentSubsector = null;
+  let searchWorker = null;
+  let isSearching = false;
 
   async function sbGet(table, params=''){
     try {
@@ -126,7 +151,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
       });
       return r.ok ? r.json() : null;
-    } catch(e) { return null; }
+    } catch(e) { console.error("Supabase GET error:", e); return null; }
   }
 
   async function sbRpc(fn, body){
@@ -137,7 +162,18 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         body: JSON.stringify(body)
       });
       return r.ok ? r.json() : {error:true};
-    } catch(e) { return {error:true}; }
+    } catch(e) { console.error("Supabase RPC error:", e); return {error:true}; }
+  }
+
+  async function sbPatch(table, body, params=''){
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
+        method:'PATCH',
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      return r.ok;
+    } catch(e) { console.error("Supabase PATCH error:", e); return false; }
   }
 
   function showScreen(id) {
@@ -152,19 +188,26 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     setTimeout(() => t.classList.remove('show'), 3000);
   }
 
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById('tab' + tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add('active');
+    document.getElementById('tabContent' + tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add('active');
+  }
+
   async function selectPuzzle(num) {
     console.log("Selected:", num);
     const pid = num === 71 ? 1 : 2;
     const data = await sbGet('puzzles', `?id=eq.${pid}&limit=1`);
     if(!data || !data[0]) { 
-      // Fallback for demo if DB fails
-      activePuzzle = {id: pid, number: num};
+      activePuzzle = {id: pid, number: num, algorithm: (num === 71 ? 'bruteforce' : 'kangaroo')};
     } else {
       activePuzzle = data[0];
     }
     document.getElementById('mainTitle').textContent = 'Puzzle #' + num;
     showScreen('screenMain');
     await getNewSubsector();
+    renderSectorGrid();
   }
 
   async function getNewSubsector() {
@@ -183,8 +226,121 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     document.getElementById('subRange').textContent = `0x${res.range_lo.substring(0,16)}... → 0x${res.range_hi.substring(0,16)}...`;
   }
 
+  async function claimSector(sectorIndex, subsectorIndex) {
+    console.log(`Claiming sector ${sectorIndex}, subsector ${subsectorIndex}`);
+    const success = await sbRpc('claim_subsector', {
+      p_puzzle_id: activePuzzle.id,
+      p_user_id: tgUser.id,
+      p_sector_index: sectorIndex,
+      p_subsector_index: subsectorIndex
+    });
+    if (success) {
+      toast(`Сектор S${sectorIndex}·P${subsectorIndex} успешно занят!`);
+      renderSectorGrid(); // Refresh map
+      await getNewSubsector(); // Get next subsector for search
+    } else {
+      toast('Не удалось занять сектор');
+    }
+  }
+
   function startSearch() {
-    toast('Поиск запущен (демо)');
+    if (!currentSubsector) {
+      toast('Нет доступных подсекторов для поиска');
+      return;
+    }
+    if (isSearching) return;
+
+    isSearching = true;
+    document.getElementById('btnStartSearch').style.display = 'none';
+    document.getElementById('btnStopSearch').style.display = 'block';
+    document.getElementById('statusBadge').textContent = 'Searching...';
+    document.getElementById('statusBadge').classList.remove('s-idle');
+    document.getElementById('statusBadge').classList.add('s-running');
+
+    const workerPath = activePuzzle.algorithm === 'bruteforce' ? './bruteforce_worker.js' : './kangaroo_worker.js';
+    searchWorker = new Worker(workerPath, { type: 'module' });
+
+    searchWorker.onmessage = (e) => {
+      if (e.data.type === 'progress') {
+        const progress = (e.data.progress * 100).toFixed(2);
+        document.getElementById('searchProgressVal').textContent = `${progress}%`;
+        document.getElementById('searchProgressBar').style.width = `${progress}%`;
+      } else if (e.data.type === 'complete') {
+        toast(e.data.result);
+        stopSearch();
+        // Mark subsector as completed or found in DB
+        // For now, just get a new one
+        getNewSubsector();
+      }
+    };
+
+    searchWorker.postMessage({
+      startRange: currentSubsector.range_lo,
+      endRange: currentSubsector.range_hi,
+      puzzleId: activePuzzle.id
+    });
+    toast('Поиск запущен');
+  }
+
+  function stopSearch() {
+    if (!isSearching) return;
+
+    isSearching = false;
+    if (searchWorker) {
+      searchWorker.terminate();
+      searchWorker = null;
+    }
+    document.getElementById('btnStartSearch').style.display = 'block';
+    document.getElementById('btnStopSearch').style.display = 'none';
+    document.getElementById('statusBadge').textContent = 'Idle';
+    document.getElementById('statusBadge').classList.remove('s-running');
+    document.getElementById('statusBadge').classList.add('s-idle');
+    toast('Поиск остановлен');
+  }
+
+  async function renderSectorGrid() {
+    const gridElement = document.getElementById('sectorGrid');
+    if (!gridElement) return;
+    gridElement.innerHTML = ''; // Clear existing grid
+
+    const sectors = await sbGet('sectors', `?puzzle_id=eq.${activePuzzle.id}`);
+    if (!sectors) return;
+
+    // Assuming 1000 sectors, 25 rows * 40 columns
+    const totalSectors = 1000;
+    const sectorsPerRow = 40;
+
+    for (let i = 0; i < totalSectors; i++) {
+      const sector = sectors.find(s => s.sector_index === i);
+      const cell = document.createElement('div');
+      cell.classList.add('sector-cell');
+      
+      if (sector) {
+        // Determine status based on subsectors
+        // This is a simplified representation. A real implementation would check all 1000 subsectors.
+        const completedSubsectors = sector.completed_subsectors || 0;
+        const totalSubsectors = 1000; // Assuming 1000 subsectors per sector
+
+        if (completedSubsectors === totalSubsectors) {
+          cell.classList.add('completed');
+        } else if (completedSubsectors > 0) {
+          cell.classList.add('partial');
+        } else {
+          cell.classList.add('free');
+        }
+      } else {
+        cell.classList.add('free');
+      }
+
+      cell.title = `Sector ${i}`; // Tooltip
+      cell.onclick = () => {
+        // When a sector is clicked, we should try to claim a subsector within it
+        // For now, let's just log and get a new subsector from that sector
+        toast(`Clicked Sector ${i}`);
+        getNewSubsector(i); // Request a subsector from this specific sector
+      };
+      gridElement.appendChild(cell);
+    }
   }
 
   window.onload = () => {
@@ -193,12 +349,17 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       tgUser = window.Telegram.WebApp.initDataUnsafe.user || tgUser;
     }
     console.log("App ready");
+    // Initial render of the select screen
+    showScreen('screenSelect');
   };
 
   // Глобальная привязка для кнопок
   window.selectPuzzle = selectPuzzle;
   window.showScreen = showScreen;
   window.startSearch = startSearch;
+  window.stopSearch = stopSearch;
+  window.switchTab = switchTab;
+  window.claimSector = claimSector; // Expose claimSector for potential future use or direct calls
 </script>
 </body>
 </html>
