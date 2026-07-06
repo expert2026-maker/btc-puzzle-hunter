@@ -6,45 +6,199 @@
 <title>BTC Puzzle Hunter</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root { --bg:#06060f; --surface:#0e0e1c; --card:#131326; --accent:#f7931a; --text:#e2e2f0; }
-body { background:var(--bg); color:var(--text); font-family:sans-serif; margin:0; padding:20px; }
-.screen { display:none; }
-.screen.active { display:block; }
-.card { background:var(--card); padding:20px; border-radius:10px; margin-bottom:10px; cursor:pointer; border:1px solid #333; }
-.btn { padding:10px 20px; background:var(--accent); border:none; border-radius:5px; cursor:pointer; color:black; font-weight:bold; }
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@300;400;500;700&display=swap');
+:root {
+  --bg:#06060f; --surface:#0e0e1c; --card:#131326; --border:#1f1f38;
+  --accent:#f7931a; --teal:#00d4aa; --purple:#7c3aed;
+  --text:#e2e2f0; --muted:#5a5a7a; --danger:#ff4466; --green:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+.content{padding:16px;max-width:440px;margin:0 auto;flex:1;position:relative;z-index:1;}
+.header{text-align:center;padding:22px 0 14px;}
+.eyebrow{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+.title{font-size:26px;font-weight:700;letter-spacing:-0.5px;line-height:1.1;}
+.title em{font-style:normal;color:var(--accent);}
+.subtitle{font-size:12px;color:var(--muted);margin-top:5px;}
+.puzzle-cards{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+.puzzle-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:18px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;
+}
+.puzzle-card:active{transform:scale(0.98);}
+.pc-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.pc-icon{font-size:32px;}
+.pc-title{font-size:18px;font-weight:700;}
+.pc-algo{font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.pc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.pc-stat{background:rgba(0,0,0,0.2);border-radius:8px;padding:8px;text-align:center;}
+.pc-stat-val{font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:600;}
+.pc-stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.pc-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+.btn{width:100%;padding:14px;border:none;border-radius:11px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-ghost{background:var(--card);color:var(--text);border:1px solid var(--border);}
+.btn-sm{padding:8px 14px;font-size:12px;width:auto;}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 16px;font-size:12px;opacity:0;transition:all 0.25s;z-index:200;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.status-badge{font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(90,90,122,0.2);color:var(--muted);}
+.tabs{display:flex;background:var(--surface);border-radius:12px;padding:3px;margin-bottom:14px;}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:11px;font-weight:500;border-radius:10px;cursor:pointer;color:var(--muted);}
+.tab.active{background:var(--card);color:var(--text);}
+.metric-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;}
+.metric-label{font-size:9px;color:var(--muted);text-transform:uppercase;}
+.metric-value{font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;}
 </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
 
-<div id="screenSelect" class="screen active">
-  <h1>Выберите пазл</h1>
-  <div class="card" onclick="selectPuzzle(71)">Puzzle #71 (7.1 BTC)</div>
-  <div class="card" onclick="selectPuzzle(135)">Puzzle #135 (13.5 BTC)</div>
+<div class="screen active" id="screenSelect">
+  <div class="content">
+    <div class="header">
+      <div class="eyebrow">Bitcoin Puzzle · Distributed Search</div>
+      <div class="title">Выберите <em>пазл</em></div>
+      <div class="subtitle">Координированный поиск ключей</div>
+    </div>
+    <div class="puzzle-cards">
+      <div class="puzzle-card" onclick="selectPuzzle(71)">
+        <div class="pc-header"><div class="pc-icon">⚡</div><div><div class="pc-title">Puzzle #71</div><div class="pc-algo">Brute Force</div></div></div>
+        <div class="pc-stats">
+          <div class="pc-stat"><div class="pc-stat-val text-teal">7.1</div><div class="pc-stat-label">BTC</div></div>
+          <div class="pc-stat"><div class="pc-stat-val">71</div><div class="pc-stat-label">Бит</div></div>
+          <div class="pc-stat"><div class="pc-stat-val" id="p71progress">0%</div><div class="pc-stat-label">Покрыто</div></div>
+        </div>
+      </div>
+      <div class="puzzle-card" onclick="selectPuzzle(135)">
+        <div class="pc-header"><div class="pc-icon">🦘</div><div><div class="pc-title">Puzzle #135</div><div class="pc-algo">Pollard's Kangaroo</div></div></div>
+        <div class="pc-stats">
+          <div class="pc-stat"><div class="pc-stat-val text-accent">13.5</div><div class="pc-stat-label">BTC</div></div>
+          <div class="pc-stat"><div class="pc-stat-val">135</div><div class="pc-stat-label">Бит</div></div>
+          <div class="pc-stat"><div class="pc-stat-val" id="p135progress">0%</div><div class="pc-stat-label">Покрыто</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div id="screenMain" class="screen">
-  <button class="btn" onclick="showScreen('screenSelect')">← Назад</button>
-  <h1 id="puzzleTitle">Puzzle #--</h1>
-  <p>Статус: Готов к поиску</p>
-  <button class="btn" onclick="alert('Поиск запущен!')">Начать поиск</button>
+<div class="screen" id="screenMain">
+  <div class="content">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('screenSelect')">← Назад</button>
+      <div id="mainTitle" style="font-weight:bold;">Puzzle #71</div>
+      <div class="status-badge" style="margin-left:auto;">Idle</div>
+    </div>
+    
+    <div class="tabs">
+      <div class="tab active">🔍 Поиск</div>
+      <div class="tab">🗺 Карта</div>
+      <div class="tab">🏆 Топ</div>
+    </div>
+
+    <div class="metric-row">
+      <div class="metric"><div class="metric-label">Прыжков</div><div class="metric-value">0</div></div>
+      <div class="metric"><div class="metric-label">Сектор</div><div class="metric-value" id="subsectorLabel">--</div></div>
+    </div>
+
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px;">
+      <div style="font-size:11px; color:var(--muted); margin-bottom:5px;">Диапазон:</div>
+      <div id="subRange" style="font-family:'Share Tech Mono',monospace; font-size:11px; word-break:break-all;">Загрузка...</div>
+    </div>
+
+    <button class="btn btn-primary" id="btnStart" onclick="startSearch()">▶ Запустить поиск</button>
+  </div>
 </div>
 
 <script>
+  const SUPABASE_URL = 'https://ttjydnfqumtxhptugtun.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_83ALyXazxFelIUjpg5ri4g_-YcqZb4N';
+
+  let tgUser = {id: 12345, first_name: 'User'};
+  let activePuzzle = null;
+  let currentSubsector = null;
+
+  async function sbGet(table, params=''){
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+      });
+      return r.ok ? r.json() : null;
+    } catch(e) { return null; }
+  }
+
+  async function sbRpc(fn, body){
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
+        method:'POST',
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      return r.ok ? r.json() : {error:true};
+    } catch(e) { return {error:true}; }
+  }
+
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
   }
 
-  function selectPuzzle(num) {
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  async function selectPuzzle(num) {
     console.log("Selected:", num);
-    document.getElementById('puzzleTitle').innerText = "Puzzle #" + num;
+    const pid = num === 71 ? 1 : 2;
+    const data = await sbGet('puzzles', `?id=eq.${pid}&limit=1`);
+    if(!data || !data[0]) { 
+      // Fallback for demo if DB fails
+      activePuzzle = {id: pid, number: num};
+    } else {
+      activePuzzle = data[0];
+    }
+    document.getElementById('mainTitle').textContent = 'Puzzle #' + num;
     showScreen('screenMain');
+    await getNewSubsector();
+  }
+
+  async function getNewSubsector() {
+    if(!activePuzzle) return;
+    document.getElementById('subRange').textContent = 'Загрузка...';
+    const res = await sbRpc('get_next_subsector', {
+      p_puzzle_id: parseInt(activePuzzle.id),
+      p_user_id: parseInt(tgUser.id)
+    });
+    if(!res || res.error || !res.subsector_id) {
+      document.getElementById('subRange').textContent = 'Нет свободных секторов';
+      return;
+    }
+    currentSubsector = res;
+    document.getElementById('subsectorLabel').textContent = `S${res.sector_index}·P${res.subsector_index}`;
+    document.getElementById('subRange').textContent = `0x${res.range_lo.substring(0,16)}... → 0x${res.range_hi.substring(0,16)}...`;
+  }
+
+  function startSearch() {
+    toast('Поиск запущен (демо)');
   }
 
   window.onload = () => {
+    if(window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      tgUser = window.Telegram.WebApp.initDataUnsafe.user || tgUser;
+    }
     console.log("App ready");
-    if(window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.ready();
   };
+
+  // Глобальная привязка для кнопок
+  window.selectPuzzle = selectPuzzle;
+  window.showScreen = showScreen;
+  window.startSearch = startSearch;
 </script>
 </body>
 </html>
