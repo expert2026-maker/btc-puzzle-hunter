@@ -144,6 +144,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
   let currentSubsector = null;
   let searchWorker = null;
   let isSearching = false;
+  let targetAddress = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'; // Example target address for testing
 
   async function sbGet(table, params=''){
     try {
@@ -260,16 +261,30 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
     const workerPath = activePuzzle.algorithm === 'bruteforce' ? './bruteforce_worker.js' : './kangaroo_worker.js';
     searchWorker = new Worker(workerPath, { type: 'module' });
 
-    searchWorker.onmessage = (e) => {
+    searchWorker.onmessage = async (e) => {
       if (e.data.type === 'progress') {
         const progress = (e.data.progress * 100).toFixed(2);
         document.getElementById('searchProgressVal').textContent = `${progress}%`;
         document.getElementById('searchProgressBar').style.width = `${progress}%`;
+      } else if (e.data.type === 'found') {
+        toast(`Ключ найден! Приватный ключ: ${e.data.privateKey}, Адрес: ${e.data.address}`);
+        stopSearch();
+        // Here you would typically save the found key to the database
+        // For now, just log it and get a new subsector
+        console.log('Found Key:', e.data.privateKey, 'Address:', e.data.address);
+        await sbRpc('mark_subsector_found', {
+          p_subsector_id: currentSubsector.subsector_id,
+          p_found_private_key: e.data.privateKey,
+          p_found_address: e.data.address
+        });
+        getNewSubsector();
       } else if (e.data.type === 'complete') {
         toast(e.data.result);
         stopSearch();
-        // Mark subsector as completed or found in DB
-        // For now, just get a new one
+        // Mark subsector as completed (no key found)
+        await sbRpc('mark_subsector_completed', {
+          p_subsector_id: currentSubsector.subsector_id
+        });
         getNewSubsector();
       }
     };
@@ -277,7 +292,8 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
     searchWorker.postMessage({
       startRange: currentSubsector.range_lo,
       endRange: currentSubsector.range_hi,
-      puzzleId: activePuzzle.id
+      puzzleId: activePuzzle.id,
+      targetAddress: targetAddress // Pass the target address to the worker
     });
     toast('Поиск запущен');
   }
@@ -316,14 +332,15 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
       cell.classList.add('sector-cell');
       
       if (sector) {
-        // Determine status based on subsectors
         // This is a simplified representation. A real implementation would check all 1000 subsectors.
-        const completedSubsectors = sector.completed_subsectors || 0;
-        const totalSubsectors = 1000; // Assuming 1000 subsectors per sector
+        // For now, we'll just check if any subsectors are completed or claimed.
+        const subsectorsInSector = await sbGet('subsectors', `?sector_id=eq.${sector.id}`);
+        const completedCount = subsectorsInSector ? subsectorsInSector.filter(s => s.status === 'completed' || s.status === 'found').length : 0;
+        const claimedCount = subsectorsInSector ? subsectorsInSector.filter(s => s.status === 'claimed').length : 0;
 
-        if (completedSubsectors === totalSubsectors) {
+        if (completedCount === 1000) { // Assuming 1000 subsectors per sector
           cell.classList.add('completed');
-        } else if (completedSubsectors > 0) {
+        } else if (completedCount > 0 || claimedCount > 0) {
           cell.classList.add('partial');
         } else {
           cell.classList.add('free');
@@ -334,9 +351,8 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
 
       cell.title = `Sector ${i}`; // Tooltip
       cell.onclick = () => {
-        // When a sector is clicked, we should try to claim a subsector within it
-        // For now, let's just log and get a new subsector from that sector
-        toast(`Clicked Sector ${i}`);
+        toast(`Clicked Sector ${i}. Claiming a subsector...`);
+        // This will attempt to claim a subsector within the clicked sector
         getNewSubsector(i); // Request a subsector from this specific sector
       };
       gridElement.appendChild(cell);
