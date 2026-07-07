@@ -51,6 +51,30 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
 .metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;}
 .metric-label{font-size:9px;color:var(--muted);text-transform:uppercase;}
 .metric-value{font-family:"Share Tech Mono",monospace;font-size:20px;font-weight:700;}
+
+/* Progress bar styles */
+.progress-wrap { margin-bottom: 15px; }
+.progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.progress-label { font-size: 11px; color: var(--muted); }
+.progress-val { font-family: "Share Tech Mono", monospace; font-size: 11px; font-weight: 600; color: var(--text); }
+.progress-bg { background: rgba(0,0,0,0.2); border-radius: 5px; height: 8px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; border-radius: 5px; transition: width 0.2s ease-out; }
+.fill-teal { background: var(--teal); }
+
+/* Tab content styles */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Sector grid styles */
+.map-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; }
+.map-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.sector-grid { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
+.sector-cell { width: 10px; height: 10px; background: var(--surface); border-radius: 2px; cursor: pointer; }
+.sector-cell.free { background: var(--surface); } /* Default, unclaimed */
+.sector-cell.claimed { background: var(--accent); } /* Claimed by current user */
+.sector-cell.partial { background: var(--teal); } /* Partially completed */
+.sector-cell.completed { background: var(--green); } /* Fully completed */
+.sector-cell.other-claimed { background: var(--purple); } /* Claimed by other user */
 </style>
 </head>
 <body>
@@ -73,7 +97,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
         </div>
       </div>
       <div class="puzzle-card" onclick="selectPuzzle(135)">
-        <div class="pc-header"><div class="pc-icon">🦘</div><div><div class="pc-title">Puzzle #135</div><div class="pc-algo">Pollard's Kangaroo</div></div></div>
+        <div class="pc-header"><div class="pc-icon">🦘</div><div><div class="pc-title">Puzzle #135</div><div class="pc-algo">Pollard\"s Kangaroo</div></div></div>
         <div class="pc-stats">
           <div class="pc-stat"><div class="pc-stat-val text-accent">13.5</div><div class="pc-stat-label">BTC</div></div>
           <div class="pc-stat"><div class="pc-stat-val">135</div><div class="pc-stat-label">Бит</div></div>
@@ -87,15 +111,15 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
 <div class="screen" id="screenMain">
   <div class="content">
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
-      <button class="btn btn-ghost btn-sm" onclick="showScreen('screenSelect')">← Назад</button>
+      <button class="btn btn-ghost btn-sm" onclick="showScreen(\'screenSelect\')">← Назад</button>
       <div id="mainTitle" style="font-weight:bold;">Puzzle #71</div>
       <div class="status-badge" style="margin-left:auto;" id="statusBadge">Idle</div>
     </div>
     
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('search')" id="tabSearch">🔍 Поиск</div>
-      <div class="tab" onclick="switchTab('map')" id="tabMap">🗺 Карта</div>
-      <div class="tab" onclick="switchTab('leaderboard')" id="tabLeaderboard">🏆 Топ</div>
+      <div class="tab active" onclick="switchTab(\'search\')" id="tabSearch">🔍 Поиск</div>
+      <div class="tab" onclick="switchTab(\'map\')" id="tabMap">🗺 Карта</div>
+      <div class="tab" onclick="switchTab(\'leaderboard\')" id="tabLeaderboard">🏆 Топ</div>
     </div>
 
     <div id="tabContentSearch" class="tab-content active">
@@ -106,7 +130,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
 
       <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px;">
         <div style="font-size:11px; color:var(--muted); margin-bottom:5px;">Диапазон:</div>
-        <div id="subRange" style="font-family:'Share Tech Mono',monospace; font-size:11px; word-break:break-all;">Загрузка...</div>
+        <div id="subRange" style="font-family:\'Share Tech Mono\',monospace; font-size:11px; word-break:break-all;">Загрузка...</div>
       </div>
 
       <div class="progress-wrap">
@@ -136,20 +160,20 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
 </div>
 
 <script>
-  const SUPABASE_URL = 'https://ttjydnfqumtxhptugtun.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_83ALyXazxFelIUjpg5ri4g_-YcqZb4N';
+  const SUPABASE_URL = \'https://ttjydnfqumtxhptugtun.supabase.co\';
+  const SUPABASE_KEY = \'sb_publishable_83ALyXazxFelIUjpg5ri4g_-YcqZb4N\';
 
-  let tgUser = {id: 12345, first_name: 'User'};
+  let tgUser = {id: 12345, first_name: \'User\'};
   let activePuzzle = null;
   let currentSubsector = null;
   let searchWorker = null;
   let isSearching = false;
-  let targetAddress = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'; // Example target address for testing
+  let targetAddress = \'1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\'; // Example target address for testing
 
-  async function sbGet(table, params=''){
+  async function sbGet(table, params=\'\'){
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
-        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+        headers:{\'apikey\':SUPABASE_KEY,\'Authorization\':`Bearer ${SUPABASE_KEY}`}
       });
       return r.ok ? r.json() : null;
     } catch(e) { console.error("Supabase GET error:", e); return null; }
@@ -158,19 +182,19 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
   async function sbRpc(fn, body){
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
-        method:'POST',
-        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        method:\'POST\',
+        headers:{\'apikey\':SUPABASE_KEY,\'Authorization\':`Bearer ${SUPABASE_KEY}`,\'Content-Type\':\'application/json\'},
         body: JSON.stringify(body)
       });
       return r.ok ? r.json() : {error:true};
     } catch(e) { console.error("Supabase RPC error:", e); return {error:true}; }
   }
 
-  async function sbPatch(table, body, params=''){
+  async function sbPatch(table, body, params=\'\'){
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`,{
-        method:'PATCH',
-        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        method:\'PATCH\',
+        headers:{\'apikey\':SUPABASE_KEY,\'Authorization\':`Bearer ${SUPABASE_KEY}`,\'Content-Type\':\'application/json\'},
         body: JSON.stringify(body)
       });
       return r.ok;
@@ -178,58 +202,59 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
   }
 
   function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+    document.querySelectorAll(\'\\.screen\').forEach(s => s.classList.remove(\'active\'));
+    document.getElementById(id).classList.add(\'active\');
   }
 
   function toast(msg) {
-    const t = document.getElementById('toast');
+    const t = document.getElementById(\'toast\');
     t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
+    t.classList.add(\'show\');
+    setTimeout(() => t.classList.remove(\'show\'), 3000);
   }
 
   function switchTab(tabId) {
-    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    document.getElementById('tab' + tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add('active');
-    document.getElementById('tabContent' + tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add('active');
+    document.querySelectorAll(\'\\.tab\').forEach(tab => tab.classList.remove(\'active\'));
+    document.querySelectorAll(\'\\.tab-content\').forEach(content => content.classList.remove(\'active\'));
+    document.getElementById(\'tab\'+ tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add(\'active\');
+    document.getElementById(\'tabContent\'+ tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add(\'active\');
   }
 
   async function selectPuzzle(num) {
     console.log("Selected:", num);
     const pid = num === 71 ? 1 : 2;
-    const data = await sbGet('puzzles', `?id=eq.${pid}&limit=1`);
+    const data = await sbGet(\'puzzles\', `?id=eq.${pid}&limit=1`);
     if(!data || !data[0]) { 
-      activePuzzle = {id: pid, number: num, algorithm: (num === 71 ? 'bruteforce' : 'kangaroo')};
+      activePuzzle = {id: pid, number: num, algorithm: (num === 71 ? \'bruteforce\' : \'kangaroo\')};
     } else {
       activePuzzle = data[0];
     }
-    document.getElementById('mainTitle').textContent = 'Puzzle #' + num;
-    showScreen('screenMain');
+    document.getElementById(\'mainTitle\').textContent = \'Puzzle #\' + num;
+    showScreen(\'screenMain\');
     await getNewSubsector();
     renderSectorGrid();
   }
 
   async function getNewSubsector() {
     if(!activePuzzle) return;
-    document.getElementById('subRange').textContent = 'Загрузка...';
-    const res = await sbRpc('get_next_subsector', {
+    document.getElementById(\'subRange\').textContent = \'Загрузка...\';
+    const res = await sbRpc(\'get_next_subsector\', {
       p_puzzle_id: parseInt(activePuzzle.id),
       p_user_id: parseInt(tgUser.id)
     });
     if(!res || res.error || !res.subsector_id) {
-      document.getElementById('subRange').textContent = 'Нет свободных секторов';
+      document.getElementById(\'subRange\').textContent = \'Нет свободных секторов\';
+      currentSubsector = null; // Ensure currentSubsector is null if no free sectors
       return;
     }
     currentSubsector = res;
-    document.getElementById('subsectorLabel').textContent = `S${res.sector_index}·P${res.subsector_index}`;
-    document.getElementById('subRange').textContent = `0x${res.range_lo.substring(0,16)}... → 0x${res.range_hi.substring(0,16)}...`;
+    document.getElementById(\'subsectorLabel\').textContent = `S${res.sector_index}·P${res.subsector_index}`;
+    document.getElementById(\'subRange\').textContent = `0x${res.range_lo.substring(0,16)}... → 0x${res.range_hi.substring(0,16)}...`;
   }
 
   async function claimSector(sectorIndex, subsectorIndex) {
     console.log(`Claiming sector ${sectorIndex}, subsector ${subsectorIndex}`);
-    const success = await sbRpc('claim_subsector', {
+    const success = await sbRpc(\'claim_subsector\', {
       p_puzzle_id: activePuzzle.id,
       p_user_id: tgUser.id,
       p_sector_index: sectorIndex,
@@ -240,49 +265,49 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
       renderSectorGrid(); // Refresh map
       await getNewSubsector(); // Get next subsector for search
     } else {
-      toast('Не удалось занять сектор');
+      toast(\'Не удалось занять сектор\');
     }
   }
 
   function startSearch() {
     if (!currentSubsector) {
-      toast('Нет доступных подсекторов для поиска');
+      toast(\'Нет доступных подсекторов для поиска\');
       return;
     }
     if (isSearching) return;
 
     isSearching = true;
-    document.getElementById('btnStartSearch').style.display = 'none';
-    document.getElementById('btnStopSearch').style.display = 'block';
-    document.getElementById('statusBadge').textContent = 'Searching...';
-    document.getElementById('statusBadge').classList.remove('s-idle');
-    document.getElementById('statusBadge').classList.add('s-running');
+    document.getElementById(\'btnStartSearch\').style.display = \'none\';
+    document.getElementById(\'btnStopSearch\').style.display = \'block\';
+    document.getElementById(\'statusBadge\').textContent = \'Searching...\';
+    document.getElementById(\'statusBadge\').classList.remove(\'s-idle\');
+    document.getElementById(\'statusBadge\').classList.add(\'s-running\');
 
-    const workerPath = activePuzzle.algorithm === 'bruteforce' ? './bruteforce_worker.js' : './kangaroo_worker.js';
-    searchWorker = new Worker(workerPath, { type: 'module' });
+    const workerPath = activePuzzle.algorithm === \'bruteforce\' ? \'./bruteforce_worker.js\' : \'./kangaroo_worker.js\';
+    searchWorker = new Worker(workerPath, { type: \'module\' });
 
     searchWorker.onmessage = async (e) => {
-      if (e.data.type === 'progress') {
+      if (e.data.type === \'progress\') {
         const progress = (e.data.progress * 100).toFixed(2);
-        document.getElementById('searchProgressVal').textContent = `${progress}%`;
-        document.getElementById('searchProgressBar').style.width = `${progress}%`;
-      } else if (e.data.type === 'found') {
+        document.getElementById(\'searchProgressVal\').textContent = `${progress}%`;
+        document.getElementById(\'searchProgressBar\').style.width = `${progress}%`;
+      } else if (e.data.type === \'found\') {
         toast(`Ключ найден! Приватный ключ: ${e.data.privateKey}, Адрес: ${e.data.address}`);
         stopSearch();
         // Here you would typically save the found key to the database
         // For now, just log it and get a new subsector
-        console.log('Found Key:', e.data.privateKey, 'Address:', e.data.address);
-        await sbRpc('mark_subsector_found', {
+        console.log(\'Found Key:\', e.data.privateKey, \'Address:\', e.data.address);
+        await sbRpc(\'mark_subsector_found\', {
           p_subsector_id: currentSubsector.subsector_id,
           p_found_private_key: e.data.privateKey,
           p_found_address: e.data.address
         });
         getNewSubsector();
-      } else if (e.data.type === 'complete') {
+      } else if (e.data.type === \'complete\') {
         toast(e.data.result);
         stopSearch();
         // Mark subsector as completed (no key found)
-        await sbRpc('mark_subsector_completed', {
+        await sbRpc(\'mark_subsector_completed\', {
           p_subsector_id: currentSubsector.subsector_id
         });
         getNewSubsector();
@@ -295,7 +320,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
       puzzleId: activePuzzle.id,
       targetAddress: targetAddress // Pass the target address to the worker
     });
-    toast('Поиск запущен');
+    toast(\'Поиск запущен\');
   }
 
   function stopSearch() {
@@ -306,57 +331,84 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
       searchWorker.terminate();
       searchWorker = null;
     }
-    document.getElementById('btnStartSearch').style.display = 'block';
-    document.getElementById('btnStopSearch').style.display = 'none';
-    document.getElementById('statusBadge').textContent = 'Idle';
-    document.getElementById('statusBadge').classList.remove('s-running');
-    document.getElementById('statusBadge').classList.add('s-idle');
-    toast('Поиск остановлен');
+    document.getElementById(\'btnStartSearch\').style.display = \'block\';
+    document.getElementById(\'btnStopSearch\').style.display = \'none\';
+    document.getElementById(\'statusBadge\').textContent = \'Idle\';
+    document.getElementById(\'statusBadge\').classList.remove(\'s-running\');
+    document.getElementById(\'statusBadge\').classList.add(\'s-idle\');
+    toast(\'Поиск остановлен\');
   }
 
   async function renderSectorGrid() {
-    const gridElement = document.getElementById('sectorGrid');
+    const gridElement = document.getElementById(\'sectorGrid\');
     if (!gridElement) return;
-    gridElement.innerHTML = ''; // Clear existing grid
+    gridElement.innerHTML = \'\'; // Clear existing grid
 
-    const sectors = await sbGet('sectors', `?puzzle_id=eq.${activePuzzle.id}`);
+    const sectors = await sbGet(\'sectors\', `?puzzle_id=eq.${activePuzzle.id}`);
     if (!sectors) return;
 
     // Assuming 1000 sectors, 25 rows * 40 columns
     const totalSectors = 1000;
-    const sectorsPerRow = 40;
+    const sectorsPerRow = 20; // Changed to 20 for better visualization in a smaller grid
+    const numRows = Math.ceil(totalSectors / sectorsPerRow);
+
+    gridElement.style.gridTemplateColumns = `repeat(${sectorsPerRow}, 1fr)`;
 
     for (let i = 0; i < totalSectors; i++) {
       const sector = sectors.find(s => s.sector_index === i);
-      const cell = document.createElement('div');
-      cell.classList.add('sector-cell');
+      const cell = document.createElement(\'div\');
+      cell.classList.add(\'sector-cell\');
       
       if (sector) {
         // This is a simplified representation. A real implementation would check all 1000 subsectors.
-        // For now, we'll just check if any subsectors are completed or claimed.
-        const subsectorsInSector = await sbGet('subsectors', `?sector_id=eq.${sector.id}`);
-        const completedCount = subsectorsInSector ? subsectorsInSector.filter(s => s.status === 'completed' || s.status === 'found').length : 0;
-        const claimedCount = subsectorsInSector ? subsectorsInSector.filter(s => s.status === 'claimed').length : 0;
+        // For now, we\'ll just check if any subsectors are completed or claimed.
+        const subsectorsInSector = await sbGet(\'subsectors\', `?sector_id=eq.${sector.id}`);
+        const completedSubsectors = subsectorsInSector ? subsectorsInSector.filter(s => s.status === \'completed\' || s.status === \'found\').length : 0;
+        const claimedSubsectors = subsectorsInSector ? subsectorsInSector.filter(s => s.status === \'claimed\' && s.claimed_by === tgUser.id).length : 0;
+        const otherClaimedSubsectors = subsectorsInSector ? subsectorsInSector.filter(s => s.status === \'claimed\' && s.claimed_by !== tgUser.id).length : 0;
 
-        if (completedCount === 1000) { // Assuming 1000 subsectors per sector
-          cell.classList.add('completed');
-        } else if (completedCount > 0 || claimedCount > 0) {
-          cell.classList.add('partial');
+        if (completedSubsectors === 1000) { // Assuming 1000 subsectors per sector
+          cell.classList.add(\'completed\');
+        } else if (claimedSubsectors > 0) {
+          cell.classList.add(\'claimed\');
+        } else if (otherClaimedSubsectors > 0) {
+          cell.classList.add(\'other-claimed\');
+        } else if (completedSubsectors > 0) {
+          cell.classList.add(\'partial\');
         } else {
-          cell.classList.add('free');
+          cell.classList.add(\'free\');
         }
       } else {
-        cell.classList.add('free');
+        cell.classList.add(\'free\');
       }
 
       cell.title = `Sector ${i}`; // Tooltip
       cell.onclick = () => {
-        toast(`Clicked Sector ${i}. Claiming a subsector...`);
-        // This will attempt to claim a subsector within the clicked sector
-        getNewSubsector(i); // Request a subsector from this specific sector
+        toast(`Clicked Sector ${i}. Attempting to get a subsector...`);
+        // This will attempt to get a subsector from this specific sector
+        getNewSubsectorFromSector(i); 
       };
       gridElement.appendChild(cell);
     }
+  }
+
+  async function getNewSubsectorFromSector(sectorIndex) {
+    if(!activePuzzle) return;
+    document.getElementById(\'subRange\').textContent = \'Загрузка...\';
+    const res = await sbRpc(\'get_next_subsector\', {
+      p_puzzle_id: parseInt(activePuzzle.id),
+      p_user_id: parseInt(tgUser.id),
+      p_sector_index: sectorIndex // Request a subsector from a specific sector
+    });
+    if(!res || res.error || !res.subsector_id) {
+      document.getElementById(\'subRange\').textContent = \'Нет свободных секторов в этом секторе\';
+      currentSubsector = null; 
+      return;
+    }
+    currentSubsector = res;
+    document.getElementById(\'subsectorLabel\').textContent = `S${res.sector_index}·P${res.subsector_index}`;
+    document.getElementById(\'subRange\').textContent = `0x${res.range_lo.substring(0,16)}... → 0x${res.range_hi.substring(0,16)}...`;
+    toast(`Получен подсектор S${res.sector_index}·P${res.subsector_index}`);
   }
 
   window.onload = () => {
@@ -366,7 +418,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
     }
     console.log("App ready");
     // Initial render of the select screen
-    showScreen('screenSelect');
+    showScreen(\'screenSelect\');
   };
 
   // Глобальная привязка для кнопок
@@ -375,7 +427,8 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
   window.startSearch = startSearch;
   window.stopSearch = stopSearch;
   window.switchTab = switchTab;
-  window.claimSector = claimSector; // Expose claimSector for potential future use or direct calls
+  window.claimSector = claimSector; 
+  window.getNewSubsectorFromSector = getNewSubsectorFromSector; // Expose for map interaction
 </script>
 </body>
 </html>
