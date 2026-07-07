@@ -88,7 +88,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
       <div class="subtitle">Координированный поиск ключей</div>
     </div>
     <div class="puzzle-cards">
-      <div class="puzzle-card" onclick="selectPuzzle(71)">
+      <div class="puzzle-card" data-puzzle-id="71">
         <div class="pc-header"><div class="pc-icon">⚡</div><div><div class="pc-title">Puzzle #71</div><div class="pc-algo">Brute Force</div></div></div>
         <div class="pc-stats">
           <div class="pc-stat"><div class="pc-stat-val text-teal">7.1</div><div class="pc-stat-label">BTC</div></div>
@@ -96,7 +96,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
           <div class="pc-stat"><div class="pc-stat-val" id="p71progress">0%</div><div class="pc-stat-label">Покрыто</div></div>
         </div>
       </div>
-      <div class="puzzle-card" onclick="selectPuzzle(135)">
+      <div class="puzzle-card" data-puzzle-id="135">
         <div class="pc-header"><div class="pc-icon">🦘</div><div><div class="pc-title">Puzzle #135</div><div class="pc-algo">Pollard\"s Kangaroo</div></div></div>
         <div class="pc-stats">
           <div class="pc-stat"><div class="pc-stat-val text-accent">13.5</div><div class="pc-stat-label">BTC</div></div>
@@ -111,15 +111,15 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
 <div class="screen" id="screenMain">
   <div class="content">
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
-      <button class="btn btn-ghost btn-sm" onclick="showScreen(\'screenSelect\')">← Назад</button>
+      <button class="btn btn-ghost btn-sm" id="btnBackToSelect">← Назад</button>
       <div id="mainTitle" style="font-weight:bold;">Puzzle #71</div>
       <div class="status-badge" style="margin-left:auto;" id="statusBadge">Idle</div>
     </div>
     
     <div class="tabs">
-      <div class="tab active" onclick="switchTab(\'search\')" id="tabSearch">🔍 Поиск</div>
-      <div class="tab" onclick="switchTab(\'map\')" id="tabMap">🗺 Карта</div>
-      <div class="tab" onclick="switchTab(\'leaderboard\')" id="tabLeaderboard">🏆 Топ</div>
+      <div class="tab active" data-tab-id="search" id="tabSearch">🔍 Поиск</div>
+      <div class="tab" data-tab-id="map" id="tabMap">🗺 Карта</div>
+      <div class="tab" data-tab-id="leaderboard" id="tabLeaderboard">🏆 Топ</div>
     </div>
 
     <div id="tabContentSearch" class="tab-content active">
@@ -130,7 +130,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
 
       <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px;">
         <div style="font-size:11px; color:var(--muted); margin-bottom:5px;">Диапазон:</div>
-        <div id="subRange" style="font-family:\'Share Tech Mono\',monospace; font-size:11px; word-break:break-all;">Загрузка...</div>
+        <div id="subRange" style="font-family:\"Share Tech Mono\",monospace; font-size:11px; word-break:break-all;">Загрузка...</div>
       </div>
 
       <div class="progress-wrap">
@@ -141,8 +141,8 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
         <div class="progress-bg"><div class="progress-fill fill-teal" id="searchProgressBar" style="width:0%;"></div></div>
       </div>
 
-      <button class="btn btn-primary" id="btnStartSearch" onclick="startSearch()">▶ Запустить поиск</button>
-      <button class="btn btn-stop" id="btnStopSearch" onclick="stopSearch()" style="display:none;">■ Остановить поиск</button>
+      <button class="btn btn-primary" id="btnStartSearch">▶ Запустить поиск</button>
+      <button class="btn btn-stop" id="btnStopSearch" style="display:none;">■ Остановить поиск</button>
     </div>
 
     <div id="tabContentMap" class="tab-content">
@@ -202,7 +202,7 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
   }
 
   function showScreen(id) {
-    document.querySelectorAll('\.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
   }
 
@@ -214,8 +214,8 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
   }
 
   function switchTab(tabId) {
-    document.querySelectorAll('\.tab').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('\.tab-content').forEach(content => content.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     document.getElementById('tab'+ tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add('active');
     document.getElementById('tabContent'+ tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add('active');
   }
@@ -388,10 +388,10 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
       }
 
       cell.title = `Sector ${i}`; // Tooltip
-      cell.onclick = () => {
+      cell.addEventListener('click', () => {
         toast(`Clicked Sector ${i}. Attempting to get a subsector...`);
         getNewSubsector(i); // Request a subsector from this specific sector
-      };
+      });
       gridElement.appendChild(cell);
     }
   }
@@ -403,16 +403,20 @@ body{background:var(--bg);color:var(--text);font-family:"Space Grotesk",sans-ser
     }
     console.log("App ready");
     showScreen('screenSelect');
-  };
 
-  // Глобальная привязка для кнопок
-  window.selectPuzzle = selectPuzzle;
-  window.showScreen = showScreen;
-  window.startSearch = startSearch;
-  window.stopSearch = stopSearch;
-  window.switchTab = switchTab;
-  window.claimSector = claimSector; 
-  window.getNewSubsector = getNewSubsector; // Expose for map interaction
+    // Attach event listeners programmatically
+    document.querySelectorAll('.puzzle-card').forEach(card => {
+      card.addEventListener('click', () => selectPuzzle(parseInt(card.dataset.puzzleId)));
+    });
+
+    document.getElementById('btnBackToSelect').addEventListener('click', () => showScreen('screenSelect'));
+    document.getElementById('btnStartSearch').addEventListener('click', startSearch);
+    document.getElementById('btnStopSearch').addEventListener('click', stopSearch);
+
+    document.getElementById('tabSearch').addEventListener('click', () => switchTab('search'));
+    document.getElementById('tabMap').addEventListener('click', () => switchTab('map'));
+    document.getElementById('tabLeaderboard').addEventListener('click', () => switchTab('leaderboard'));
+  };
 </script>
 </body>
 </html>
